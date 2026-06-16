@@ -43,3 +43,25 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  newman:
+    name: Newman Postman tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BASE_URL: ${{ vars.BASE_URL || 'https://api.staging.pungle.co' }}
+      PROGRAM_ID: ${{ vars.PROGRAM_ID || '137' }}
+      BP_API_KEY: ${{ secrets.BP_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Newman tests
+        run: npm run newman
