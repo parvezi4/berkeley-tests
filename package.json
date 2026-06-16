@@ -1,0 +1,25 @@
+{
+  "name": "berkeley-card-issuing-tests",
+  "version": "1.0.0",
+  "description": "Black-box API test suite for the Berkeley Payments Card Issuing APIs, built with Playwright + TypeScript.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:cardholders": "playwright test tests/cardholders",
+    "test:accounts": "playwright test tests/accounts",
+    "test:value-loads": "playwright test tests/value-loads",
+    "test:programs": "playwright test tests/programs",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:headed": "playwright test --reporter=list",
+    "report": "playwright show-report",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": ["playwright", "typescript", "api-testing", "qa", "fintech", "berkeley-payments"],
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^22.7.0",
+    "typescript": "^5.6.0",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Secrets / local env
+.env
+.env.local
+*.local
+
+# Playwright output
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
