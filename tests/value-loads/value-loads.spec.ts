@@ -3,6 +3,14 @@ import { BerkeleyClient } from '../../src/api/berkeley-client.js';
 import { uniqueTag } from '../../src/utils/test-data.js';
 import type { AccountBalance, ListResponse, ValueLoad } from '../../src/api/types.js';
 
+/**
+ * Value Loads endpoint test suite.
+ *
+ * Tests verify that the Value Loads API correctly handles fund transfers to accounts.
+ * These are critical tests for financial correctness, including money conservation
+ * (what goes in must come out) and idempotency (duplicate requests don't double-charge).
+ */
+
 /** Read an account's available balance as a number (minor units / cents). */
 async function availableBalance(client: BerkeleyClient, accountId: number): Promise<number> {
   const res = await client.getAccountBalance(accountId);
@@ -12,6 +20,10 @@ async function availableBalance(client: BerkeleyClient, accountId: number): Prom
 }
 
 test.describe('Value Loads', () => {
+  /**
+   * Core happy-path test: Creating a value load should return 201 with the
+   * created load id and the requested amount echoed back.
+   */
   test('Create Value Load returns 201 and echoes the amount @smoke', async ({
     client,
     seededAccount,
@@ -31,11 +43,14 @@ test.describe('Value Loads', () => {
   });
 
   /**
-   * FLAGSHIP TEST — money conservation.
+   * FLAGSHIP TEST — Money Conservation
    *
    * The single highest-value assertion in the suite: a load of N must increase
-   * the account's available balance by exactly N. If this is ever wrong, money
-   * is being created or destroyed. Proven entirely black-box, from balances.
+   * the account's available balance by exactly N. If this breaks, money is being
+   * created or destroyed. This is proven entirely black-box, reading only balances
+   * before and after, which makes it resilient to implementation changes.
+   *
+   * Goal: Verify that fund transfers are always accounted for correctly.
    */
   test('a value load increases available balance by exactly the loaded amount', async ({
     client,
@@ -57,10 +72,14 @@ test.describe('Value Loads', () => {
   });
 
   /**
-   * Idempotency — replaying the same idempotency key must not double-load.
-   * Either the second call is rejected, or it returns the same load without
-   * moving the balance a second time. Both are acceptable; a second balance
-   * movement is not.
+   * Idempotency test: Replaying the same idempotency key must not double-load.
+   *
+   * Either the second call is rejected (4xx) or it returns the same load result
+   * without moving the balance a second time. Both are acceptable; a second
+   * balance movement is not. This protects against network retries accidentally
+   * creating duplicate loads.
+   *
+   * Goal: Verify that clients can safely retry failed requests without risk.
    */
   test('replaying an idempotency key does not double-charge', async ({ client, seededAccount }) => {
     const LOAD = 100;
@@ -94,6 +113,11 @@ test.describe('Value Loads', () => {
     ).toBe(LOAD);
   });
 
+  /**
+   * Verify that the list endpoint returns a paginated collection with a count
+   * of total loads. This allows consumers to iterate through loads for
+   * reconciliation and auditing.
+   */
   test('List Value Loads returns a counted collection', async ({ client }) => {
     const res = await client.listValueLoads({ limit: 25 });
     expect(res.status()).toBe(200);
@@ -102,6 +126,10 @@ test.describe('Value Loads', () => {
     expect(Array.isArray(body.data)).toBeTruthy();
   });
 
+  /**
+   * Verify that a created load can be retrieved by id with full details.
+   * This allows consumers to look up a load's status and details after creation.
+   */
   test('Get Value Load Details returns the created load', async ({ client, seededAccount }) => {
     const createRes = await client.createValueLoad({
       account_id: seededAccount.accountId,
@@ -117,6 +145,10 @@ test.describe('Value Loads', () => {
     expect(body).toBeTruthy();
   });
 
+  /**
+   * Negative test: Attempting to load funds to a non-existent account should
+   * be rejected with a 4xx error, not a 5xx server error.
+   */
   test('[negative] loading a non-existent account is rejected with a 4xx', async ({ client }) => {
     const res = await client.createValueLoad({
       account_id: 999_999_999,

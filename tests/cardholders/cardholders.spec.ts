@@ -3,7 +3,19 @@ import { BerkeleyClient } from '../../src/api/berkeley-client.js';
 import { newCardholder } from '../../src/utils/test-data.js';
 import type { CreateCardholderResponse, ListResponse } from '../../src/api/types.js';
 
+/**
+ * Cardholders endpoint test suite.
+ *
+ * Tests verify that the Cardholders API correctly handles cardholder lifecycle:
+ * creation, retrieval, listing, and updates. These are foundational operations
+ * for the card issuing system, as every account is tied to a cardholder.
+ */
 test.describe('Cardholders', () => {
+  /**
+   * Core happy-path test: Creating a cardholder should return a 201 status
+   * with the created cardholder id and processor reference. An initial load
+   * amount may be applied during creation.
+   */
   test('Create Cardholder returns 201 with id, processor reference, and a successful load @smoke', async ({
     client,
   }) => {
@@ -18,6 +30,10 @@ test.describe('Cardholders', () => {
     }
   });
 
+  /**
+   * Verify that a created cardholder can be retrieved by id and that the
+   * retrieved data matches what was created.
+   */
   test('Get Cardholder returns the same id that was created', async ({ client }) => {
     const createRes = await client.createCardholder(newCardholder());
     const created = BerkeleyClient.unwrap<CreateCardholderResponse>(await createRes.json());
@@ -28,6 +44,10 @@ test.describe('Cardholders', () => {
     expect(String(fetched.id ?? fetched.cardholder_id)).toBe(String(created.id));
   });
 
+  /**
+   * Verify that the list endpoint returns a paginated collection of cardholders.
+   * This allows consumers to iterate through all cardholders with limit/offset.
+   */
   test('List Cardholders returns a collection', async ({ client }) => {
     const res = await client.listCardholders({ limit: 10 });
     expect(res.status()).toBe(200);
@@ -36,6 +56,11 @@ test.describe('Cardholders', () => {
     expect(Array.isArray(arr)).toBeTruthy();
   });
 
+  /**
+   * Verify that cardholders can be updated with partial field changes.
+   * The update should succeed without requiring all original fields.
+   * Note: Address fields have a cooldown period and are tested separately.
+   */
   test('Update Cardholder accepts a partial personal-info update', async ({ client }) => {
     const createRes = await client.createCardholder(newCardholder());
     const created = BerkeleyClient.unwrap<CreateCardholderResponse>(await createRes.json());
@@ -50,6 +75,10 @@ test.describe('Cardholders', () => {
     expect([200, 201]).toContain(res.status());
   });
 
+  /**
+   * Negative test: Creating a cardholder with missing required fields
+   * should be rejected with a 4xx error, not a 5xx server error.
+   */
   test('[negative] missing required fields is rejected with a 4xx', async ({ client }) => {
     // Only last_name supplied — program_id, first_name, email, etc. omitted.
     const res = await client.createCardholder({ last_name: 'NoOtherFields' } as never);
@@ -58,6 +87,10 @@ test.describe('Cardholders', () => {
     expect([200, 201]).not.toContain(res.status());
   });
 
+  /**
+   * Negative test: Requesting a cardholder that doesn't exist should
+   * return a 4xx error, not 5xx.
+   */
   test('[negative] fetching a non-existent cardholder returns a 4xx', async ({ client }) => {
     const res = await client.getCardholder(999_999_999);
     expect(res.status()).toBeGreaterThanOrEqual(400);
