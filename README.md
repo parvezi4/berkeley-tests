@@ -36,11 +36,38 @@ cp .env.example .env
 #   edit .env and set BP_API_KEY to your staging key
 
 # 3. Run
-npm test                 # full suite
-npm run test:value-loads # one project
+npm test                 # full Playwright suite
 npm run test:smoke       # @smoke-tagged fast subset
-npm run report           # open the HTML report
+npm run newman:local     # Postman collection tests (verbose)
+npm run newman           # Postman collection tests (standard)
+npm run report           # open the Playwright HTML report
 ```
+
+### Running locally
+
+Both Playwright and Newman tests require the `BP_API_KEY` environment variable set via `.env`:
+
+```bash
+export BP_API_KEY=your-staging-key
+npm test           # Run Playwright tests
+npm run newman     # Run Newman/Postman tests
+```
+
+### GitHub Actions setup
+
+To run tests in CI, configure these GitHub repository settings:
+
+1. **Secrets** (Settings → Secrets and Variables → Actions):
+   - `BP_API_KEY` — your staging API key (required)
+
+2. **Variables** (Settings → Secrets and Variables → Actions) — optional:
+   - `BASE_URL` — defaults to `https://api.staging.pungle.co`
+   - `PROGRAM_ID` — defaults to `137`
+
+Both **Playwright** and **Newman/Postman** tests run automatically on:
+- Every push to `main`
+- Every pull request to `main`
+- Nightly scheduled run (6 AM UTC) to catch provider-side drift
 
 ## Highlighted tests
 
