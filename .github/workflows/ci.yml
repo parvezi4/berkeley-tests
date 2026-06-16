@@ -30,6 +30,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify environment
+        run: |
+          echo "✓ BASE_URL: ${{ env.BASE_URL }}"
+          echo "✓ PROGRAM_ID: ${{ env.PROGRAM_ID }}"
+          echo "✓ BP_API_KEY: $([ -z '${{ secrets.BP_API_KEY }}' ] && echo 'NOT SET' || echo '***')"
+          node -e "console.log('✓ Node:', process.version)"
+
       - name: Type-check
         run: npm run lint
 
@@ -62,6 +69,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Verify environment
+        run: |
+          echo "✓ BASE_URL: ${{ env.BASE_URL }}"
+          echo "✓ PROGRAM_ID: ${{ env.PROGRAM_ID }}"
+          echo "✓ BP_API_KEY: $([ -z '${{ secrets.BP_API_KEY }}' ] && echo 'NOT SET' || echo '***')"
+          node -e "console.log('✓ Node:', process.version)"
 
       - name: Run Newman tests
         run: npm run newman
