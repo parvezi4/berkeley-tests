@@ -34,7 +34,11 @@ jobs:
         run: |
           echo "✓ BASE_URL: ${{ env.BASE_URL }}"
           echo "✓ PROGRAM_ID: ${{ env.PROGRAM_ID }}"
-          echo "✓ BP_API_KEY: $([ -z '${{ secrets.BP_API_KEY }}' ] && echo 'NOT SET' || echo '***')"
+          if [ -z "${{ secrets.BP_API_KEY }}" ]; then
+            echo "❌ BP_API_KEY: NOT SET (configure in Settings > Secrets > Actions)"
+          else
+            echo "✓ BP_API_KEY: ***"
+          fi
           node -e "console.log('✓ Node:', process.version)"
 
       - name: Type-check
@@ -42,6 +46,8 @@ jobs:
 
       - name: Run Playwright API tests
         run: npx playwright test
+        env:
+          BP_API_KEY: ${{ secrets.BP_API_KEY }}
 
       - name: Upload HTML report
         if: ${{ !cancelled() }}
@@ -74,8 +80,14 @@ jobs:
         run: |
           echo "✓ BASE_URL: ${{ env.BASE_URL }}"
           echo "✓ PROGRAM_ID: ${{ env.PROGRAM_ID }}"
-          echo "✓ BP_API_KEY: $([ -z '${{ secrets.BP_API_KEY }}' ] && echo 'NOT SET' || echo '***')"
+          if [ -z "${{ secrets.BP_API_KEY }}" ]; then
+            echo "❌ BP_API_KEY: NOT SET (configure in Settings > Secrets > Actions)"
+          else
+            echo "✓ BP_API_KEY: ***"
+          fi
           node -e "console.log('✓ Node:', process.version)"
 
       - name: Run Newman tests
         run: npm run newman
+        env:
+          BP_API_KEY: ${{ secrets.BP_API_KEY }}
