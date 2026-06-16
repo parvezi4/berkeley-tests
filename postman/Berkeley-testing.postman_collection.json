@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "89f3771d-844f-468a-b549-6216b7ae5b2c",
     "name": "Berkeley-testing",
-    "description": "Test suite for the Berkeley Payments **Card Issuing** API (staging).\n\nBase URLs:\n- Staging: https://api.staging.pungle.co\n- Production: https://api.pungle.io\n\nAuth: collection-level Bearer token using `{{api_key}}`.\n\n## Variable strategy\n- **Collection variable** `card_issuing_path` (= `api/v1/card_issuing`) \u2014 stable API structure.\n- **Environment** (Berkeley-Staging) holds everything instance-specific: `base_url`, `api_key`, `program_id`, and the chained values `cardholder_id`, `processor_reference`, `account_id`, `last_four_digits`, `value_load_id`.\n\n## Run order (for a full chained Collection Runner / Newman run)\n1. **Cardholders \u2192 Create Cardholder** sets `cardholder_id` + `processor_reference`.\n2. **Accounts and Cards \u2192 Get Account By Processor Reference** resolves `account_id`; **Get Account Details** sets `last_four_digits`.\n3. **Value Loads** use `account_id`; **Create Value Load** sets `value_load_id`.\n4. **Programs** is independent and can run any time.\n\nConditional endpoints (Activate Card, Retrieve PIN, Value Unload) assert leniently because they depend on program configuration (physical vs virtual, Canadian, unload-enabled) and log the reason when not applicable.\n\nA collection-level test asserts no 5xx on every request.",
+    "description": "Test suite for the Berkeley Payments **Card Issuing** API (staging).\n\nBase URLs:\n- Staging: https://api.staging.pungle.co\n- Production: https://api.pungle.io\n\nAuth: collection-level Bearer token using `{{api_key}}`.\n\n## Variable strategy\n- **Collection variable** `card_issuing_path` (= `api/v1/card_issuing`) — stable API structure.\n- **Environment** (Berkeley-Staging) holds everything instance-specific: `base_url`, `api_key`, `program_id`, and the chained values `cardholder_id`, `processor_reference`, `account_id`, `last_four_digits`, `value_load_id`.\n\n## Run order (for a full chained Collection Runner / Newman run)\n1. **Cardholders → Create Cardholder** sets `cardholder_id` + `processor_reference`.\n2. **Accounts and Cards → Get Account By Processor Reference** resolves `account_id`; **Get Account Details** sets `last_four_digits`.\n3. **Value Loads** use `account_id`; **Create Value Load** sets `value_load_id`.\n4. **Programs** is independent and can run any time.\n\nConditional endpoints (Activate Card, Retrieve PIN, Value Unload) assert leniently because they depend on program configuration (physical vs virtual, Canadian, unload-enabled) and log the reason when not applicable.\n\nA collection-level test asserts no 5xx on every request.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "17097606"
   },
@@ -65,11 +65,12 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
                   "pm.test(\"Response time is below 6000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(6000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
-                  "const data = json.data || json;",
+                  "let json = pm.response.json();",
+                  "let data = json.data || json;",
                   "pm.test(\"Cardholder id is returned\", function () { pm.expect(data).to.have.property(\"id\"); });",
                   "pm.test(\"primary_processor_reference is returned\", function () { pm.expect(data).to.have.property(\"primary_processor_reference\"); });",
                   "pm.test(\"Initial value load succeeded\", function () {",
@@ -78,7 +79,8 @@
                   "// --- chain ---",
                   "if (data.id) { pm.environment.set(\"cardholder_id\", data.id); }",
                   "if (data.primary_processor_reference) { pm.environment.set(\"processor_reference\", data.primary_processor_reference); }",
-                  "console.log(\"Saved cardholder_id =\", data.id, \"| processor_reference =\", data.primary_processor_reference);"
+                  "console.log(\"Saved cardholder_id =\", data.id, \"| processor_reference =\", data.primary_processor_reference);",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -115,11 +117,12 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
-                  "const data = json.data || json;",
+                  "let json = pm.response.json();",
+                  "let data = json.data || json;",
                   "pm.test(\"Returned id matches requested cardholder_id\", function () {",
                   "    const id = data.id || data.cardholder_id;",
                   "    pm.expect(String(id)).to.eql(String(pm.environment.get(\"cardholder_id\")));",
@@ -134,7 +137,8 @@
                   "            break;",
                   "        }",
                   "    }",
-                  "} catch (e) { console.log(\"last_four extraction skipped:\", e.message); }"
+                  "} catch (e) { console.log(\"last_four extraction skipped:\", e.message); }",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -184,14 +188,16 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
+                  "let json = pm.response.json();",
                   "pm.test(\"Response is a collection\", function () {",
                   "    const arr = Array.isArray(json) ? json : json.data;",
                   "    pm.expect(arr).to.be.an(\"array\");",
-                  "});"
+                  "});",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -241,10 +247,10 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200 or 201\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const data = (pm.response.json().data) || pm.response.json();",
-                  "pm.test(\"Update echoes cardholder id\", function () { pm.expect(data).to.have.property(\"id\"); });"
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -380,16 +386,18 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
-                  "const data = json.data || json;",
+                  "let json = pm.response.json();",
+                  "let data = json.data || json;",
                   "pm.test(\"Account id present\", function () { pm.expect(data).to.have.property(\"id\"); });",
                   "pm.test(\"processor_reference echoes request\", function () {",
                   "    pm.expect(String(data.processor_reference)).to.eql(String(pm.environment.get(\"processor_reference\")));",
                   "});",
-                  "if (data.id) { pm.environment.set(\"account_id\", data.id); console.log(\"Saved account_id =\", data.id); }"
+                  "if (data.id) { pm.environment.set(\"account_id\", data.id); console.log(\"Saved account_id =\", data.id); }",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -434,11 +442,12 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
-                  "const data = json.data || json;",
+                  "let json = pm.response.json();",
+                  "let data = json.data || json;",
                   "pm.test(\"Core account fields present\", function () {",
                   "    [\"id\", \"status_code\", \"balance\"].forEach(function (f) { pm.expect(data).to.have.property(f); });",
                   "});",
@@ -448,6 +457,7 @@
                   "if (data.cards && data.cards.length && data.cards[0].last_four_digits) {",
                   "    pm.environment.set(\"last_four_digits\", String(data.cards[0].last_four_digits));",
                   "    console.log(\"Saved last_four_digits =\", data.cards[0].last_four_digits);",
+                  "}",
                   "}"
                 ],
                 "type": "text/javascript",
@@ -486,17 +496,19 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
-                  "const data = json.data || json;",
+                  "let json = pm.response.json();",
+                  "let data = json.data || json;",
                   "pm.test(\"Balance fields present\", function () {",
                   "    [\"settled_balance\", \"available_balance\", \"balance\"].forEach(function (f) { pm.expect(data).to.have.property(f); });",
                   "});",
                   "pm.test(\"available_balance is a numeric string\", function () {",
                   "    pm.expect(String(data.available_balance)).to.match(/^-?\\d+(\\.\\d+)?$/);",
-                  "});"
+                  "});",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -607,14 +619,16 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
+                  "let json = pm.response.json();",
                   "pm.test(\"Transactions data is an array\", function () {",
                   "    const arr = Array.isArray(json) ? json : json.data;",
                   "    pm.expect(arr).to.be.an(\"array\");",
-                  "});"
+                  "});",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -652,13 +666,15 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
                   "pm.test(\"Order status payload present\", function () {",
-                  "    const json = pm.response.json();",
+                  "    let json = pm.response.json();",
                   "    pm.expect(json).to.satisfy(function (x) { return x.hasOwnProperty(\"data\") || Array.isArray(x); });",
-                  "});"
+                  "});",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -691,7 +707,7 @@
                 "activate_card"
               ]
             },
-            "description": "Activates a PHYSICAL card by Account ID + last four (Sample 1). Physical cards only \u2014 virtual cards must use 'Modify Account Status' with mark_card_active.\n\nUpdate expiry_month/expiry_year/cvv to match the real card under test. Lenient assertion: success on 201/210, otherwise logs the precondition reason.",
+            "description": "Activates a PHYSICAL card by Account ID + last four (Sample 1). Physical cards only — virtual cards must use 'Modify Account Status' with mark_card_active.\n\nUpdate expiry_month/expiry_year/cvv to match the real card under test. Lenient assertion: success on 201/210, otherwise logs the precondition reason.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id\": {{account_id}},\n  \"last_four_digits\": \"{{last_four_digits}}\",\n  \"expiry_month\": \"07\",\n  \"expiry_year\": \"2030\",\n  \"cvv\": \"123\"\n}",
@@ -747,7 +763,7 @@
                 ""
               ]
             },
-            "description": "Changes card/account status. Body `status` accepts: mark_card_active, mark_card_lost, mark_card_stolen, initiate_card_lost, initiate_card_stolen, suspend, unsuspend.\n\nEDGE CASE worth testing: `lost`/`stolen` are terminal \u2014 a card in those states cannot be moved back. Suspend/unsuspend is the safe reversible pair for staging.",
+            "description": "Changes card/account status. Body `status` accepts: mark_card_active, mark_card_lost, mark_card_stolen, initiate_card_lost, initiate_card_stolen, suspend, unsuspend.\n\nEDGE CASE worth testing: `lost`/`stolen` are terminal — a card in those states cannot be moved back. Suspend/unsuspend is the safe reversible pair for staging.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"suspend\",\n  \"last_four_digits\": \"{{last_four_digits}}\"\n}",
@@ -803,7 +819,7 @@
                 "get_pin"
               ]
             },
-            "description": "Retrieves the card PIN. CANADIAN PROGRAMS ONLY \u2014 expect a 4xx on non-CA programs. Lenient assertion accordingly.",
+            "description": "Retrieves the card PIN. CANADIAN PROGRAMS ONLY — expect a 4xx on non-CA programs. Lenient assertion accordingly.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"last_four_digits\": \"{{last_four_digits}}\"\n}",
@@ -820,12 +836,14 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Response handled (no 5xx)\", function () { pm.expect(pm.response.code).to.be.below(500); });",
                   "if (pm.response.code === 200) {",
-                  "    const data = (pm.response.json().data) || pm.response.json();",
+                  "    let data = (pm.response.json().data) || pm.response.json();",
                   "    pm.test(\"PIN returned\", function () { pm.expect(data).to.have.property(\"pin\"); });",
                   "} else {",
                   "    console.log(\"Retrieve PIN unavailable (Canadian programs only). Code:\", pm.response.code);",
+                  "}",
                   "}"
                 ],
                 "type": "text/javascript",
@@ -932,15 +950,17 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
                   "pm.test(\"Response time is below 5000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(5000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
-                  "const data = json.data || json;",
+                  "let json = pm.response.json();",
+                  "let data = json.data || json;",
                   "pm.test(\"Value load id returned\", function () { pm.expect(data).to.have.property(\"id\"); });",
                   "pm.test(\"Amount echoes request (100)\", function () { pm.expect(Number(data.amount)).to.eql(100); });",
                   "pm.test(\"load_type is 'load'\", function () { if (data.load_type) pm.expect(data.load_type).to.eql(\"load\"); });",
-                  "if (data.id) { pm.environment.set(\"value_load_id\", data.id); console.log(\"Saved value_load_id =\", data.id); }"
+                  "if (data.id) { pm.environment.set(\"value_load_id\", data.id); console.log(\"Saved value_load_id =\", data.id); }",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -999,14 +1019,16 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
+                  "let json = pm.response.json();",
                   "pm.test(\"Has count and data array\", function () {",
                   "    pm.expect(json).to.have.property(\"count\");",
                   "    pm.expect(json.data).to.be.an(\"array\");",
-                  "});"
+                  "});",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -1043,13 +1065,15 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
+                  "let json = pm.response.json();",
                   "pm.test(\"Value load payload present\", function () {",
                   "    pm.expect(json).to.satisfy(function (x) { return x.id || x.data || x.account_id; });",
-                  "});"
+                  "});",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -1082,7 +1106,7 @@
                 "unload"
               ]
             },
-            "description": "Unloads funds from an account. MUST BE ENABLED PER PROGRAM \u2014 expect a 4xx if not enabled on staging. Lenient assertion accordingly.",
+            "description": "Unloads funds from an account. MUST BE ENABLED PER PROGRAM — expect a 4xx if not enabled on staging. Lenient assertion accordingly.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"account_id\": {{account_id}},\n  \"amount\": 50,\n  \"external_tag\": \"{{vl_tag_u}}\",\n  \"message\": \"QA automated unload\",\n  \"idempotency_key\": \"{{vl_idem_u}}\"\n}",
@@ -1111,12 +1135,14 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Response handled (no 5xx)\", function () { pm.expect(pm.response.code).to.be.below(500); });",
                   "if (pm.response.code === 201) {",
-                  "    const data = (pm.response.json().data) || pm.response.json();",
+                  "    let data = (pm.response.json().data) || pm.response.json();",
                   "    pm.test(\"Unload id returned\", function () { pm.expect(data).to.have.property(\"id\"); });",
                   "} else {",
                   "    console.log(\"Value Unload not enabled for this program (per docs). Code:\", pm.response.code);",
+                  "}",
                   "}"
                 ],
                 "type": "text/javascript",
@@ -1210,18 +1236,20 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
-                  "const json = pm.response.json();",
-                  "const data = json.data || json;",
+                  "let json = pm.response.json();",
+                  "let data = json.data || json;",
                   "pm.test(\"Core program fields present\", function () {",
                   "    [\"id\", \"name\", \"program_type\", \"status\", \"currency\"].forEach(function (f) { pm.expect(data).to.have.property(f); });",
                   "});",
                   "pm.test(\"Returned id matches program_id\", function () {",
                   "    pm.expect(String(data.id)).to.eql(String(pm.environment.get(\"program_id\")));",
                   "});",
-                  "pm.test(\"Program status is active\", function () { pm.expect(data.status).to.eql(\"active\"); });"
+                  "pm.test(\"Program status is active\", function () { pm.expect(data.status).to.eql(\"active\"); });",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}
@@ -1259,14 +1287,16 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "{",
                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "pm.test(\"Response time is below 3000ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
                   "pm.test(\"Content-Type is JSON\", function () { pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\"); });",
                   "pm.test(\"Balance payload present\", function () {",
-                  "    const json = pm.response.json();",
-                  "    const data = json.data || json;",
+                  "    let json = pm.response.json();",
+                  "    let data = json.data || json;",
                   "    pm.expect(data).to.be.an(\"object\");",
-                  "});"
+                  "});",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {}

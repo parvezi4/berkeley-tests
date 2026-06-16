@@ -13,8 +13,8 @@
     "test:headed": "playwright test --reporter=list",
     "report": "playwright show-report",
     "lint": "tsc --noEmit",
-    "newman": "newman run postman/Berkeley-testing.postman_collection.json -e postman/Berkeley-Staging.postman_environment.json --env-var api_key=$BP_API_KEY",
-    "newman:local": "newman run postman/Berkeley-testing.postman_collection.json -e postman/Berkeley-Staging.postman_environment.json --env-var api_key=$BP_API_KEY --verbose"
+    "newman": "node scripts/run-newman.js",
+    "newman:local": "node scripts/run-newman.js --verbose"
   },
   "keywords": ["playwright", "typescript", "api-testing", "qa", "fintech", "berkeley-payments"],
   "license": "MIT",
