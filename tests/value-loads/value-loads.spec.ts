@@ -3,12 +3,12 @@ import { BerkeleyClient } from '../../src/api/berkeley-client.js';
 import { uniqueTag } from '../../src/utils/test-data.js';
 import type { AccountBalance, ListResponse, ValueLoad } from '../../src/api/types.js';
 
-/** Read an account's available balance as a number (minor units). */
+/** Read an account's available balance as a number (minor units / cents). */
 async function availableBalance(client: BerkeleyClient, accountId: number): Promise<number> {
   const res = await client.getAccountBalance(accountId);
   expect(res.status(), 'balance read should succeed').toBe(200);
   const balance = BerkeleyClient.unwrap<AccountBalance>(await res.json());
-  return Number(balance.available_balance);
+  return Math.round(Number(balance.available_balance) * 100);
 }
 
 test.describe('Value Loads', () => {

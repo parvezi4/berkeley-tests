@@ -25,7 +25,7 @@ test.describe('Programs', () => {
     const res = await client.getProgramBalance();
     expect(res.status()).toBe(200);
     const balance = BerkeleyClient.unwrap<Record<string, unknown>>(await res.json());
-    expect(balance).toBeTypeOf('object');
+    expect(typeof balance).toBe('object');
   });
 
   test('[negative] unknown program id is rejected with a 4xx', async ({ client }) => {

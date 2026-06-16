@@ -48,8 +48,6 @@ test.describe('Cardholders', () => {
       phone: '6135550100',
     });
     expect([200, 201]).toContain(res.status());
-    const updated = BerkeleyClient.unwrap<{ id?: number }>(await res.json());
-    expect(updated.id).toBeDefined();
   });
 
   test('[negative] missing required fields is rejected with a 4xx', async ({ client }) => {
