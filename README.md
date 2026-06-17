@@ -19,10 +19,18 @@ This repository accompanies a QA test strategy (see [`docs/`](docs/)) and a Post
 │   ├── accounts/       # Resolution, balance, status transitions
 │   ├── value-loads/    # Loads, money-conservation, idempotency
 │   └── programs/       # Reads, auth isolation
-├── load-tests/         # Artillery HTTP load testing scenarios
+├── load-tests/         # Artillery load testing (quick, full, incremental modes)
+│   ├── artillery.yml   # Full load test (4+ min, 15 req/s)
+│   ├── artillery-quick.yml # Smoke test (30s, 2 req/s)
+│   ├── run-and-report.sh   # Test runner with HTML report generation
+│   └── incremental-test.sh # Find rate-limit threshold
 ├── postman/            # Importable collection + environment
-├── docs/               # Strategy document and presentation
-├── PERFORMANCE.md      # Load testing guide & Artillery configuration
+├── docs/               # Testing guides and QA strategy
+│   ├── LOAD_TESTING.md # Complete load testing guide
+│   ├── TEST_REPORTING.md # Report formats and GitHub integration
+│   ├── CI_OPTIMIZATION.md # Pipeline performance and caching
+│   └── *.docx, *.pptx  # Strategy documents
+├── SECURITY.md         # Credentials and compliance
 └── .github/workflows/  # CI: type-check + tests on push/PR + nightly
 ```
 
@@ -96,24 +104,28 @@ Both **Playwright** and **Newman/Postman** tests run automatically on:
 - **Newman** — Postman collection tests  
 - **Type-check** — TypeScript compilation
 
-These catch regressions and API contract changes.
+These catch regressions and API contract changes. Reports are generated and stored as artifacts.
 
-Set `BP_API_KEY` as a repository **secret**; `BASE_URL` and `PROGRAM_ID` as **variables**.
+**Setup:** Set `BP_API_KEY` as a repository **secret**; `BASE_URL` and `PROGRAM_ID` as **variables**.
+
+**Details:** See [`docs/CI_OPTIMIZATION.md`](docs/CI_OPTIMIZATION.md) and [`docs/TEST_REPORTING.md`](docs/TEST_REPORTING.md)
 
 ### Load Tests (Local Only - Manual)
 
-**Artillery load tests** run **locally only** via the reporter script:
+**Artillery load tests** run **locally only** and are **not** automated in CI because:
+- Load tests require coordinated timing and explicit provider sign-off
+- Resource-intensive; not suitable for CI runners
+- Results need careful interpretation and capacity planning
+- Rate limiting is a feature, not a failure
+
+Run them on-demand via:
 ```bash
-./load-tests/run-and-report.sh --open-report
+./load-tests/run-and-report.sh --quick       # 30s smoke test
+./load-tests/run-and-report.sh               # 4+ min full test
+./load-tests/incremental-test.sh             # Find rate-limit threshold
 ```
 
-They are **not** automated in GitHub Actions because:
-- Load tests require coordinated timing and setup
-- Resource-intensive; not suitable for CI runners
-- Require explicit sign-off from the API provider
-- Results need careful interpretation (not pass/fail)
-
-Run them on-demand to measure performance, throughput, and stability.
+**Details:** See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md)
 
 ## Load & Performance Testing
 
@@ -121,17 +133,63 @@ Protocol-level load testing is available via **Artillery**, a lightweight HTTP e
 
 **Quick start:**
 ```bash
-npm install --save-dev artillery  # or install globally
-artillery run load-tests/artillery.yml --target https://api.staging.pungle.co
+# Quick smoke test (30 seconds, minimal load)
+./load-tests/run-and-report.sh --quick
+
+# Full load test (4+ minutes)
+./load-tests/run-and-report.sh
+
+# Find rate-limit threshold (incremental, 5-10 minutes)
+./load-tests/incremental-test.sh
 ```
 
 **Key points:**
-- Load tests must run on **staging only** with provider sign-off
-- Tests include realistic flows: cardholder creation, account resolution, value loads, and negative paths
-- Default load profile: 4m 20s, starting at 2 req/s, ramping to 15 req/s
-- See [`PERFORMANCE.md`](PERFORMANCE.md) for detailed guide, metrics interpretation, and best practices
+- Load tests run **locally only** (not in CI) and must have **staging provider sign-off**
+- Three test modes: quick (smoke test), full (comprehensive), incremental (find limits)
+- Tests include realistic flows: cardholder creation, account resolution, value loads, negative paths
+- Reports: Beautiful HTML dashboards + JSON for CI/CD integration
+- Auto-detects rate limiting and shows when it kicked in
 
-Black-box load testing is valuable for measuring latency percentiles, throughput ceilings, and rate-limit behavior, but only under controlled conditions since load generators can trip fraud and abuse controls.
+See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide, metrics interpretation, and best practices.
+
+## Documentation
+
+### Getting Started
+- **[README.md](README.md)** — This file; quick start and overview
+
+### Testing Guides
+- **[docs/LOAD_TESTING.md](docs/LOAD_TESTING.md)** — Comprehensive load testing guide
+  - Three test modes (quick, full, incremental)
+  - Rate-limit detection and capacity planning
+  - Interpreting results and performance baselines
+  
+- **[docs/TEST_REPORTING.md](docs/TEST_REPORTING.md)** — Test reporting & GitHub integration
+  - Playwright HTML/JUnit XML reports
+  - Newman/Postman test reports
+  - GitHub Test Results tab integration
+  - Consuming reports locally or programmatically
+
+- **[docs/CI_OPTIMIZATION.md](docs/CI_OPTIMIZATION.md)** — CI/CD pipeline optimization
+  - Caching strategies
+  - Job parallelization
+  - Performance baselines and monitoring
+  - Troubleshooting CI failures
+
+### Security & Best Practices
+- **[SECURITY.md](SECURITY.md)** — Credentials, scope, and compliance
+  - Secrets handling (no credentials committed)
+  - Staging-only scope
+  - Load testing authorization requirements
+
+### QA Strategy & Architecture
+- **[docs/](docs/)** — Test strategy documentation
+  - `Berkeley_QA_Test_Strategy.docx` — Full QA philosophy and approach
+  - `Berkeley_QA_Strategy_Deck.pptx` — Presentation with speaker notes
+
+### Postman Collection
+- **[postman/README.md](postman/README.md)** — Importable collection and environment
+  - Integration with Newman for CI
+  - Manual testing in Postman
 
 ## Scope & credentials
 
