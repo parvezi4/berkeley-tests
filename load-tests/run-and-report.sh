@@ -119,8 +119,18 @@ if [ -f "$REPORT_FILE" ]; then
   " 2>/dev/null || echo "  (Could not parse results)"
 fi
 
-# HTML report generation is no longer supported in Artillery 2.0+
-# Use Artillery Cloud (https://app.artillery.io) for visualization
+# Generate HTML report from JSON
+if [ -f "$REPORT_FILE" ]; then
+  HTML_REPORT="${REPORT_FILE%.json}.html"
+  echo ""
+  echo -e "${YELLOW}📊 Generating HTML report...${NC}"
+
+  node load-tests/generate-html-report.js "$REPORT_FILE" "$HTML_REPORT" 2>/dev/null
+
+  if [ -f "$HTML_REPORT" ]; then
+    echo -e "${GREEN}✓ HTML report saved to: ${HTML_REPORT}${NC}"
+  fi
+fi
 
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
