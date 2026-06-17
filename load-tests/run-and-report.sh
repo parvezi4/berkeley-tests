@@ -85,6 +85,7 @@ echo ""
 
 npx npx npx artillery run "$ARTILLERY_CONFIG" \
   --target "$TARGET_URL" \
+  --variables "{\"apiKey\":\"$BP_API_KEY\",\"programId\":\"${PROGRAM_ID:-137}\"}" \
   --output "$REPORT_FILE" 2>/dev/null || true
 
 TEST_EXIT_CODE=$?

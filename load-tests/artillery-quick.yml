@@ -12,8 +12,9 @@
 config:
   target: "{{ baseUrl }}"
   variables:
-    apiKey: "{{ env.BP_API_KEY }}"
-    programId: "{{ env.PROGRAM_ID | default(137) }}"
+    # Default values - passed via CLI from run-and-report.sh
+    apiKey: ""
+    programId: "137"
     cardIssuingPath: "api/v1/card_issuing"
 
   phases:

@@ -96,6 +96,7 @@ for LOAD in "${LOAD_LEVELS[@]}"; do
   # Run artillery with specified load
   npx artillery run load-tests/artillery-quick.yml \
     --target "$TARGET_URL" \
+    --variables "{\"apiKey\":\"$BP_API_KEY\",\"programId\":\"${PROGRAM_ID:-137}\"}" \
     --output "$REPORT_FILE" 2>/dev/null || true
 
   # Wait for file creation
