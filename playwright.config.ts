@@ -16,9 +16,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // Retry once on CI to absorb transient network/provider blips; never locally.
   retries: process.env.CI ? 1 : 0,
-  // Money-movement tests share account state, so we keep workers conservative.
-  // Override per-project below where isolation allows more parallelism.
-  workers: process.env.CI ? 2 : undefined,
+  // Single worker on CI to reduce staging API load and prevent test flakiness.
+  // Tests were failing with 500 errors when multiple workers hit the API simultaneously.
+  // Local development can use multiple workers (undefined = auto-detect CPU count).
+  workers: process.env.CI ? 1 : undefined,
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'playwright-report' }],
