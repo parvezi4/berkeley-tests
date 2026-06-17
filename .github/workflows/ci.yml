@@ -20,33 +20,9 @@ env:
   npm_config_audit: false
 
 jobs:
-  setup:
-    name: Setup & Cache Dependencies
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Shallow clone for faster checkout
-          fetch-depth: 1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          # Explicit cache configuration with key and restore-keys
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies (including devDependencies)
-        run: npm ci --audit=false
-        timeout-minutes: 5
-        continue-on-error: false
-
   quality:
     name: Quality Checks (TypeScript & ESLint)
     runs-on: ubuntu-latest
-    needs: setup
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +51,7 @@ jobs:
   playwright:
     name: Playwright API suite
     runs-on: ubuntu-latest
-    needs: [setup, quality]
+    needs: quality
     timeout-minutes: 25
     env:
       BASE_URL: ${{ vars.BASE_URL || 'https://api.staging.pungle.co' }}
