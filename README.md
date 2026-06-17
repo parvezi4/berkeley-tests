@@ -87,9 +87,33 @@ Both **Playwright** and **Newman/Postman** tests run automatically on:
 - **Seeded fixture.** `seededAccount` chains *create cardholder → resolve account → read account*, mirroring a real consumer integration and giving dependent tests a ready account.
 - **Conditional endpoints** (status changes that depend on card state or program config) assert *no 5xx* and annotate the run rather than hard-failing on a precondition the staging program may not meet.
 
-## CI
+## CI & Testing Strategy
 
-`.github/workflows/ci.yml` runs a type-check and the full suite on every push and pull request to `main`, plus a nightly scheduled run to catch provider-side drift in staging. Set `BP_API_KEY` as a repository **secret**; `BASE_URL` and `PROGRAM_ID` can be repository **variables**.
+### Functional Tests (GitHub Actions - Automated)
+
+`.github/workflows/ci.yml` runs **functional tests** on every push/PR to `main` and nightly:
+- **Playwright** — Full API test suite with state dependencies
+- **Newman** — Postman collection tests  
+- **Type-check** — TypeScript compilation
+
+These catch regressions and API contract changes.
+
+Set `BP_API_KEY` as a repository **secret**; `BASE_URL` and `PROGRAM_ID` as **variables**.
+
+### Load Tests (Local Only - Manual)
+
+**Artillery load tests** run **locally only** via the reporter script:
+```bash
+./load-tests/run-and-report.sh --open-report
+```
+
+They are **not** automated in GitHub Actions because:
+- Load tests require coordinated timing and setup
+- Resource-intensive; not suitable for CI runners
+- Require explicit sign-off from the API provider
+- Results need careful interpretation (not pass/fail)
+
+Run them on-demand to measure performance, throughput, and stability.
 
 ## Load & Performance Testing
 

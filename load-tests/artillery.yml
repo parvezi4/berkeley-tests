@@ -1,3 +1,14 @@
+###############################################################################
+# Artillery HTTP Load Test Configuration
+#
+# ⚠️  LOCAL EXECUTION ONLY
+# These tests are designed for local developer machines and CI/CD
+# load testing environments. They are NOT run in GitHub Actions.
+#
+# Run via: ./load-tests/run-and-report.sh
+#
+###############################################################################
+
 config:
   # Target environment - override with --target flag
   target: "{{ baseUrl }}"

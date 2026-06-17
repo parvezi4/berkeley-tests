@@ -2,6 +2,8 @@
 
 This document covers protocol-level load testing using **Artillery**, a lightweight HTTP load testing engine. These tests complement the functional Playwright tests by measuring system performance, throughput, and latency under load without consuming browser resources.
 
+> ⚠️ **Important:** Load tests are **local-only** and do **not** run in GitHub Actions CI. They are designed for developer machines and require explicit execution via the reporter script.
+
 ## Why Artillery?
 
 Artillery provides several advantages for API load testing:
