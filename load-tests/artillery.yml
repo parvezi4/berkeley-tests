@@ -1,0 +1,275 @@
+config:
+  # Target environment - override with --target flag
+  target: "{{ baseUrl }}"
+  variables:
+    # Default values - can be overridden via environment or CLI
+    apiKey: "{{ env.BP_API_KEY }}"
+    programId: "{{ env.PROGRAM_ID | default(137) }}"
+    cardIssuingPath: "api/v1/card_issuing"
+
+  phases:
+    # Warm-up: Low traffic to ensure connectivity
+    - duration: 30
+      arrivalRate: 2
+      name: "Warmup"
+
+    # Ramp-up: Gradually increase load
+    - duration: 60
+      arrivalRate: 5
+      rampTo: 15
+      name: "Ramp-up"
+
+    # Sustain: Main load test
+    - duration: 120
+      arrivalRate: 15
+      name: "Sustained Load"
+
+    # Cool-down: Gradual reduction
+    - duration: 30
+      arrivalRate: 15
+      rampTo: 2
+      name: "Cool-down"
+
+  defaults:
+    headers:
+      Authorization: "Bearer {{ apiKey }}"
+      Content-Type: "application/json"
+      Accept: "application/json"
+
+  # Enable detailed logging for debugging
+  processor: "./load-tests/processor.js"
+
+  # Metrics configuration
+  metrics:
+    plugins:
+      statsd:
+        host: localhost
+        port: 8125
+
+scenarios:
+  - name: "Program Info & Balance"
+    description: "Fetch program details and balance - lightweight happy path"
+    weight: 20
+    flow:
+      - get:
+          url: "/{{ cardIssuingPath }}/programs/{{ programId }}"
+          capture:
+            - json: "$.data.id"
+              as: "fetchedProgramId"
+            - json: "$.data.status"
+              as: "programStatus"
+
+      - think: 1
+
+      - get:
+          url: "/{{ cardIssuingPath }}/programs/{{ programId }}/balance"
+          capture:
+            - json: "$.data.balance"
+              as: "programBalance"
+
+      - log: "Program {{ fetchedProgramId }} - Status: {{ programStatus }}, Balance: {{ programBalance }}"
+
+  - name: "Cardholder Lifecycle"
+    description: "Create cardholder, retrieve details, list cardholders"
+    weight: 30
+    flow:
+      - post:
+          url: "/{{ cardIssuingPath }}/cardholders"
+          json:
+            program_id: "{{ programId }}"
+            first_name: "Load"
+            last_name: "Tester"
+            date_of_birth: "01-01-1980"
+            email: "load.test.{{ $timestamp }}.{{ $randomNumber(1, 1000) }}@example.com"
+            phone: "1231231234"
+            address1: "123 Test St"
+            address2: "Suite 100"
+            city: "Moonbase One"
+            state: "UT"
+            postal_code: "84121"
+            country: "840"
+            external_tag: "load-{{ $randomString(8) }}"
+            load_amount: 1000
+            shipping_method: "1"
+            locale: "en_CA"
+          capture:
+            - json: "$.data.id"
+              as: "cardholderId"
+            - json: "$.data.primary_processor_reference"
+              as: "processorReference"
+          expect:
+            - statusCode: 201
+
+      - think: 1
+
+      - get:
+          url: "/{{ cardIssuingPath }}/cardholders/{{ cardholderId }}"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      - get:
+          url: "/{{ cardIssuingPath }}/cardholders"
+          expect:
+            - statusCode: 200
+
+      - log: "Created cardholder {{ cardholderId }} with reference {{ processorReference }}"
+
+  - name: "Account Resolution & Balance"
+    description: "Resolve account from processor reference and check balance"
+    weight: 20
+    flow:
+      - post:
+          url: "/{{ cardIssuingPath }}/cardholders"
+          json:
+            program_id: "{{ programId }}"
+            first_name: "Acct"
+            last_name: "Test"
+            date_of_birth: "01-01-1985"
+            email: "acct.test.{{ $timestamp }}.{{ $randomNumber(1, 1000) }}@example.com"
+            phone: "1231231234"
+            address1: "456 Main St"
+            address2: "Floor 2"
+            city: "Moonbase One"
+            state: "UT"
+            postal_code: "84121"
+            country: "840"
+            external_tag: "acct-{{ $randomString(8) }}"
+            load_amount: 1500
+            shipping_method: "1"
+            locale: "en_CA"
+          capture:
+            - json: "$.data.primary_processor_reference"
+              as: "procRef"
+          expect:
+            - statusCode: 201
+
+      - think: 2
+
+      - get:
+          url: "/{{ cardIssuingPath }}/accounts?processor_reference={{ procRef }}"
+          capture:
+            - json: "$.data[0].id"
+              as: "accountId"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      - get:
+          url: "/{{ cardIssuingPath }}/accounts/{{ accountId }}"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      - get:
+          url: "/{{ cardIssuingPath }}/accounts/{{ accountId }}/balance"
+          capture:
+            - json: "$.data.available_balance"
+              as: "availableBalance"
+          expect:
+            - statusCode: 200
+
+      - log: "Account {{ accountId }} - Available Balance: {{ availableBalance }}"
+
+  - name: "Value Load Operations"
+    description: "Create cardholder, then perform value load"
+    weight: 30
+    flow:
+      - post:
+          url: "/{{ cardIssuingPath }}/cardholders"
+          json:
+            program_id: "{{ programId }}"
+            first_name: "Load"
+            last_name: "User"
+            date_of_birth: "01-01-1990"
+            email: "load.user.{{ $timestamp }}.{{ $randomNumber(1, 1000) }}@example.com"
+            phone: "1231231234"
+            address1: "789 Load Ave"
+            address2: "Apt 5"
+            city: "Moonbase One"
+            state: "UT"
+            postal_code: "84121"
+            country: "840"
+            external_tag: "load-{{ $randomString(8) }}"
+            load_amount: 2000
+            shipping_method: "1"
+            locale: "en_CA"
+          capture:
+            - json: "$.data.primary_processor_reference"
+              as: "procRef"
+          expect:
+            - statusCode: 201
+
+      - think: 2
+
+      - get:
+          url: "/{{ cardIssuingPath }}/accounts?processor_reference={{ procRef }}"
+          capture:
+            - json: "$.data[0].id"
+              as: "accountId"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      - post:
+          url: "/{{ cardIssuingPath }}/value_loads/load"
+          json:
+            account_id: "{{ accountId }}"
+            amount: 500
+            external_tag: "vl-{{ $randomString(8) }}"
+            idempotency_key: "idem-{{ $timestamp }}-{{ $randomNumber(1, 10000) }}"
+            message: "Load test load"
+          capture:
+            - json: "$.data.id"
+              as: "valueLoadId"
+          expect:
+            - statusCode: 201
+
+      - think: 1
+
+      - get:
+          url: "/{{ cardIssuingPath }}/value_loads/{{ valueLoadId }}"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      - get:
+          url: "/{{ cardIssuingPath }}/value_loads?program_id={{ programId }}&limit=25"
+          expect:
+            - statusCode: 200
+
+      - log: "Value load {{ valueLoadId }} created for account {{ accountId }}"
+
+  - name: "Negative Path - Auth Validation"
+    description: "Test authentication failure with invalid token"
+    weight: 5
+    flow:
+      - get:
+          url: "/{{ cardIssuingPath }}/programs/{{ programId }}"
+          headers:
+            Authorization: "Bearer invalid-token-0000"
+          expect:
+            - statusCode: [401, 403]
+
+      - log: "Auth validation test passed"
+
+  - name: "Negative Path - Resource Not Found"
+    description: "Test 404 handling for non-existent resources"
+    weight: 5
+    flow:
+      - get:
+          url: "/{{ cardIssuingPath }}/programs/999999999"
+          expect:
+            - statusCode: 400
+
+      - get:
+          url: "/{{ cardIssuingPath }}/cardholders/999999999"
+          expect:
+            - statusCode: [400, 404]
+
+      - log: "Resource not found tests passed"

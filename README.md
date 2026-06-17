@@ -19,8 +19,10 @@ This repository accompanies a QA test strategy (see [`docs/`](docs/)) and a Post
 │   ├── accounts/       # Resolution, balance, status transitions
 │   ├── value-loads/    # Loads, money-conservation, idempotency
 │   └── programs/       # Reads, auth isolation
+├── load-tests/         # Artillery HTTP load testing scenarios
 ├── postman/            # Importable collection + environment
 ├── docs/               # Strategy document and presentation
+├── PERFORMANCE.md      # Load testing guide & Artillery configuration
 └── .github/workflows/  # CI: type-check + tests on push/PR + nightly
 ```
 
@@ -89,9 +91,23 @@ Both **Playwright** and **Newman/Postman** tests run automatically on:
 
 `.github/workflows/ci.yml` runs a type-check and the full suite on every push and pull request to `main`, plus a nightly scheduled run to catch provider-side drift in staging. Set `BP_API_KEY` as a repository **secret**; `BASE_URL` and `PROGRAM_ID` can be repository **variables**.
 
-## A note on load & performance testing
+## Load & Performance Testing
 
-Performance work is intentionally **not** wired into this functional suite. Black-box load testing of a payments provider (latency percentiles, throughput ceiling, rate-limit behaviour) is valuable but must only ever be run against staging **with the provider's explicit sign-off**, since load generators can trip fraud and abuse controls. Recommended tooling and approach are covered in the strategy document.
+Protocol-level load testing is available via **Artillery**, a lightweight HTTP engine that complements the functional Playwright tests. Load tests measure throughput, latency, and stability without browser overhead.
+
+**Quick start:**
+```bash
+npm install --save-dev artillery  # or install globally
+artillery run load-tests/artillery.yml --target https://api.staging.pungle.co
+```
+
+**Key points:**
+- Load tests must run on **staging only** with provider sign-off
+- Tests include realistic flows: cardholder creation, account resolution, value loads, and negative paths
+- Default load profile: 4m 20s, starting at 2 req/s, ramping to 15 req/s
+- See [`PERFORMANCE.md`](PERFORMANCE.md) for detailed guide, metrics interpretation, and best practices
+
+Black-box load testing is valuable for measuring latency percentiles, throughput ceilings, and rate-limit behavior, but only under controlled conditions since load generators can trip fraud and abuse controls.
 
 ## Scope & credentials
 
