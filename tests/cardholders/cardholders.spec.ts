@@ -1,6 +1,6 @@
 import { test, expect } from '../fixtures/api-fixtures.js';
 import { BerkeleyClient } from '../support/api/berkeley-client.js';
-import { newCardholder } from '../support/utils/test-data.js';
+import { newCardholder, createCardholderWithRetry } from '../support/utils/test-data.js';
 import type { CreateCardholderResponse, ListResponse } from '../support/api/types.js';
 
 /**
@@ -19,7 +19,9 @@ test.describe('Cardholders', () => {
   test('Create Cardholder returns 201 with id, processor reference, and a successful load @smoke', async ({
     client,
   }) => {
-    const res = await client.createCardholder(newCardholder({ load_amount: 500 }));
+    const res = await createCardholderWithRetry(() =>
+      client.createCardholder(newCardholder({ load_amount: 500 })),
+    );
     expect(res.status()).toBe(201);
 
     const body = BerkeleyClient.unwrap<CreateCardholderResponse>(await res.json());

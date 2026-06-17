@@ -44,19 +44,29 @@ export default defineConfig({
     {
       name: 'programs',
       testDir: './tests/programs',
+      // Programs are independent and safe to parallelize
       fullyParallel: true,
     },
     {
       name: 'cardholders',
       testDir: './tests/cardholders',
+      // Run sequentially: tests depend on seededAccount fixture
+      // Parallel workers caused fixture collisions and 500 errors
+      fullyParallel: false,
     },
     {
       name: 'accounts',
       testDir: './tests/accounts',
+      // Run sequentially: all tests use seededAccount fixture
+      // Parallel execution caused cardholder creation conflicts
+      fullyParallel: false,
     },
     {
       name: 'value-loads',
       testDir: './tests/value-loads',
+      // Run sequentially: tests depend on seededAccount fixture
+      // Parallel fixture execution caused 500 errors on cardholder creation
+      fullyParallel: false,
     },
   ],
 });

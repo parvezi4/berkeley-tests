@@ -1,4 +1,5 @@
 import { test as base, expect, type APIResponse } from '@playwright/test';
+import { setTimeout as delay } from 'timers/promises';
 import { BerkeleyClient } from '../support/api/berkeley-client.js';
 import { newCardholder } from '../support/utils/test-data.js';
 import type { Account, CreateCardholderResponse } from '../support/api/types.js';
@@ -31,10 +32,33 @@ export const test = base.extend<Fixtures>({
 
   seededAccount: async ({ client }, use) => {
     // 1. Create a cardholder (also creates the primary account + initial load).
-    const createRes = await client.createCardholder(newCardholder());
+    // Retry with exponential backoff on server errors (500s) to handle:
+    // - Temporary server overload (parallel test projects)
+    // - Rate limiting on cardholder creation
+    // - Staging environment flakiness
+    let createRes = await client.createCardholder(newCardholder());
+    let lastError: string = '';
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      if (createRes.status() === 201) break;
+
+      // If 5xx error, retry with exponential backoff
+      if (createRes.status() >= 500 && attempt < 3) {
+        const waitMs = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
+        lastError = `Attempt ${attempt}: ${createRes.status()} — retrying in ${waitMs}ms`;
+        await delay(waitMs);
+        createRes = await client.createCardholder(newCardholder());
+        continue;
+      }
+
+      // Non-5xx error: fail immediately (client error)
+      lastError = `Attempt ${attempt}: ${createRes.status()} ${await safeText(createRes)}`;
+      break;
+    }
+
     expect(
       createRes.status(),
-      `Cardholder creation failed: ${createRes.status()} ${await safeText(createRes)}`,
+      `Cardholder creation failed (all retries exhausted): ${lastError}`,
     ).toBe(201);
     const created = BerkeleyClient.unwrap<CreateCardholderResponse>(await createRes.json());
 
