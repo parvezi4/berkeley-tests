@@ -107,7 +107,8 @@ artillery run load-tests/artillery.yml \
   --set apiKey="$BP_API_KEY" \
   --set phases.2.duration="$DURATION" \
   --set phases.2.arrivalRate="$RATE" \
-  -o "$REPORT_FILE"
+  -o "$REPORT_FILE" \
+  --plugins "statsd" 2>/dev/null || true
 
 TEST_EXIT_CODE=$?
 

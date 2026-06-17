@@ -103,14 +103,26 @@ jobs:
           BP_API_KEY: ${{ secrets.BP_API_KEY }}
         timeout-minutes: 20
 
-      - name: Upload Playwright report
+      - name: Upload Playwright artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
+          name: playwright-artifacts
+          path: |
+            playwright-report/
+            test-results/junit.xml
+            test-results/results.json
+          retention-days: 30
           compression-level: 6
+
+      - name: Publish Playwright test report
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v1
+        with:
+          name: Playwright Test Results
+          path: test-results/junit.xml
+          reporter: java-junit
+          fail-on-error: false
 
   newman:
     name: Newman Postman tests
@@ -154,3 +166,41 @@ jobs:
         env:
           BP_API_KEY: ${{ secrets.BP_API_KEY }}
         timeout-minutes: 20
+
+      - name: Upload Newman artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-artifacts
+          path: load-tests/results/
+          retention-days: 30
+          compression-level: 6
+
+  # Summary job to report test results
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [playwright, newman]
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Playwright | ${{ needs.playwright.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Newman | ${{ needs.newman.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- **Playwright Report**: HTML report with detailed test results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Newman Report**: Load test results and performance metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- **JUnit Results**: Machine-readable test results for CI integration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download artifacts from the 'Artifacts' tab above to view detailed results locally." >> $GITHUB_STEP_SUMMARY
