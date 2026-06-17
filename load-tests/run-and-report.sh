@@ -8,6 +8,7 @@
 #
 # Options:
 #   --target <url>         Target API URL (default: https://api.staging.pungle.co)
+#   --quick               Run quick 30-second smoke test (low load, basic validation)
 #
 # Environment Variables:
 #   BP_API_KEY             API key (required if not in .env)
@@ -27,6 +28,8 @@ NC='\033[0m' # No Color
 
 # Default values
 TARGET_URL="${BASE_URL:-https://api.staging.pungle.co}"
+QUICK_TEST=false
+ARTILLERY_CONFIG="load-tests/artillery.yml"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_DIR="load-tests/results"
 REPORT_FILE="${RESULTS_DIR}/report_${TIMESTAMP}.json"
@@ -37,6 +40,11 @@ while [[ $# -gt 0 ]]; do
     --target)
       TARGET_URL="$2"
       shift 2
+      ;;
+    --quick)
+      QUICK_TEST=true
+      ARTILLERY_CONFIG="load-tests/artillery-quick.yml"
+      shift
       ;;
     *)
       echo "Unknown option: $1"
@@ -75,7 +83,7 @@ echo ""
 echo -e "${YELLOW}🚀 Starting load test...${NC}"
 echo ""
 
-npx npx npx artillery run load-tests/artillery.yml \
+npx npx npx artillery run "$ARTILLERY_CONFIG" \
   --target "$TARGET_URL" \
   --output "$REPORT_FILE" 2>/dev/null || true
 

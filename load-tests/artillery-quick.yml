@@ -1,0 +1,62 @@
+###############################################################################
+# Artillery Quick Load Test (30-second smoke test)
+#
+# ⚠️  LOCAL EXECUTION ONLY
+# Lightweight test for quick validation without heavy server load.
+# Tests core API paths at minimal load to verify connectivity and basic functionality.
+#
+# Run via: ./load-tests/run-and-report.sh --quick
+#
+###############################################################################
+
+config:
+  target: "{{ baseUrl }}"
+  variables:
+    apiKey: "{{ env.BP_API_KEY }}"
+    programId: "{{ env.PROGRAM_ID | default(137) }}"
+    cardIssuingPath: "api/v1/card_issuing"
+
+  phases:
+    # Single 30-second phase with minimal load (2 req/s)
+    - duration: 30
+      arrivalRate: 2
+      name: "Quick Smoke Test"
+
+  defaults:
+    headers:
+      Authorization: "Bearer {{ apiKey }}"
+      Content-Type: "application/json"
+      Accept: "application/json"
+
+scenarios:
+  # Lightweight read-only scenarios only (no cardholder creation)
+  - name: "Program Info Check"
+    description: "Quick program info validation"
+    weight: 50
+    flow:
+      - get:
+          url: "/{{ cardIssuingPath }}/programs/{{ programId }}"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      - get:
+          url: "/{{ cardIssuingPath }}/programs/{{ programId }}/balance"
+          expect:
+            - statusCode: 200
+
+      - log: "Program info validated"
+
+  - name: "Auth Validation Check"
+    description: "Verify authentication works (negative test)"
+    weight: 50
+    flow:
+      - get:
+          url: "/{{ cardIssuingPath }}/programs/{{ programId }}"
+          headers:
+            Authorization: "Bearer invalid-token"
+          expect:
+            - statusCode: [401, 403]
+
+      - log: "Auth validation passed"
