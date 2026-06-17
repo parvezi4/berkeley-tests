@@ -14,9 +14,9 @@
     "noUnusedParameters": true,
     "baseUrl": ".",
     "paths": {
-      "@api/*": ["src/api/*"],
-      "@fixtures/*": ["src/fixtures/*"],
-      "@utils/*": ["src/utils/*"]
+      "@api/*": ["tests/support/api/*"],
+      "@fixtures/*": ["tests/fixtures/*"],
+      "@utils/*": ["tests/support/utils/*"]
     }
   },
   "include": ["src", "tests", "playwright.config.ts"]

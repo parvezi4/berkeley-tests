@@ -1,6 +1,6 @@
-import { test, expect } from '../../src/fixtures/api-fixtures.js';
-import { BerkeleyClient } from '../../src/api/berkeley-client.js';
-import type { Account, AccountBalance } from '../../src/api/types.js';
+import { test, expect } from '../fixtures/api-fixtures.js';
+import { BerkeleyClient } from '../support/api/berkeley-client.js';
+import type { Account, AccountBalance } from '../support/api/types.js';
 
 /**
  * Accounts and Cards endpoint test suite.

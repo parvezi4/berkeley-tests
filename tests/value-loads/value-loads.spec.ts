@@ -1,7 +1,7 @@
-import { test, expect } from '../../src/fixtures/api-fixtures.js';
-import { BerkeleyClient } from '../../src/api/berkeley-client.js';
-import { uniqueTag } from '../../src/utils/test-data.js';
-import type { AccountBalance, ListResponse, ValueLoad } from '../../src/api/types.js';
+import { test, expect } from '../fixtures/api-fixtures.js';
+import { BerkeleyClient } from '../support/api/berkeley-client.js';
+import { uniqueTag } from '../support/utils/test-data.js';
+import type { AccountBalance, ListResponse, ValueLoad } from '../support/api/types.js';
 
 /**
  * Value Loads endpoint test suite.

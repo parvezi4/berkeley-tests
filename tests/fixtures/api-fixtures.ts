@@ -1,7 +1,7 @@
 import { test as base, expect, type APIResponse } from '@playwright/test';
-import { BerkeleyClient } from '../api/berkeley-client.js';
-import { newCardholder } from '../utils/test-data.js';
-import type { Account, CreateCardholderResponse } from '../api/types.js';
+import { BerkeleyClient } from '../support/api/berkeley-client.js';
+import { newCardholder } from '../support/utils/test-data.js';
+import type { Account, CreateCardholderResponse } from '../support/api/types.js';
 
 /**
  * Shared fixtures.

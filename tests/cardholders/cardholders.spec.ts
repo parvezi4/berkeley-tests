@@ -1,7 +1,7 @@
-import { test, expect } from '../../src/fixtures/api-fixtures.js';
-import { BerkeleyClient } from '../../src/api/berkeley-client.js';
-import { newCardholder } from '../../src/utils/test-data.js';
-import type { CreateCardholderResponse, ListResponse } from '../../src/api/types.js';
+import { test, expect } from '../fixtures/api-fixtures.js';
+import { BerkeleyClient } from '../support/api/berkeley-client.js';
+import { newCardholder } from '../support/utils/test-data.js';
+import type { CreateCardholderResponse, ListResponse } from '../support/api/types.js';
 
 /**
  * Cardholders endpoint test suite.
