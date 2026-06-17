@@ -16,10 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Disable audit to speed up npm ci
+  # Disable audit to speed up npm ci (audit is slow in CI)
   npm_config_audit: false
-  # Use production mode to avoid installing dev deps twice
-  NODE_ENV: production
 
 jobs:
   setup:
@@ -40,13 +38,10 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Verify cache (npm ci --dry-run)
-        run: npm ci --dry-run --audit=false
-        continue-on-error: true
-
-      - name: Install dependencies
+      - name: Install dependencies (including devDependencies)
         run: npm ci --audit=false
         timeout-minutes: 5
+        continue-on-error: false
 
   playwright:
     name: Playwright API suite
