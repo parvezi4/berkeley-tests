@@ -13,8 +13,8 @@ blob-report/
 playwright/.cache/
 
 # Artillery load test results (keep directory with .gitkeep)
-/load-tests/results/*.json
-/load-tests/results/*.html
+/load-tests/results/**/*.json
+/load-tests/results/**/*.html
 
 # Logs
 *.log
