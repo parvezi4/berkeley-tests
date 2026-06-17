@@ -47,15 +47,6 @@ config:
       Content-Type: "application/json"
       Accept: "application/json"
 
-  # Enable detailed logging for debugging
-  processor: "./load-tests/processor.js"
-
-  # Metrics configuration
-  metrics:
-    plugins:
-      statsd:
-        host: localhost
-        port: 8125
 
 scenarios:
   - name: "Program Info & Balance"

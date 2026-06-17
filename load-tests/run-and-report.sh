@@ -7,11 +7,7 @@
 #   ./load-tests/run-and-report.sh [options]
 #
 # Options:
-#   --duration <seconds>    Override sustained phase duration (default: 120)
-#   --rate <n>             Override sustained phase arrival rate (default: 15)
 #   --target <url>         Target API URL (default: https://api.staging.pungle.co)
-#   --no-report            Skip HTML report generation
-#   --open-report          Open HTML report in browser after completion
 #
 # Environment Variables:
 #   BP_API_KEY             API key (required if not in .env)
@@ -31,37 +27,16 @@ NC='\033[0m' # No Color
 
 # Default values
 TARGET_URL="${BASE_URL:-https://api.staging.pungle.co}"
-SKIP_REPORT=false
-OPEN_REPORT=false
-DURATION=120
-RATE=15
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_DIR="load-tests/results"
 REPORT_FILE="${RESULTS_DIR}/report_${TIMESTAMP}.json"
-HTML_REPORT="${RESULTS_DIR}/report_${TIMESTAMP}.html"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --duration)
-      DURATION="$2"
-      shift 2
-      ;;
-    --rate)
-      RATE="$2"
-      shift 2
-      ;;
     --target)
       TARGET_URL="$2"
       shift 2
-      ;;
-    --no-report)
-      SKIP_REPORT=true
-      shift
-      ;;
-    --open-report)
-      OPEN_REPORT=true
-      shift
       ;;
     *)
       echo "Unknown option: $1"
@@ -93,7 +68,6 @@ echo "Configuration:"
 echo -e "  Target URL:        ${GREEN}${TARGET_URL}${NC}"
 echo -e "  API Key:           $([ -n "$BP_API_KEY" ] && echo -e "${GREEN}***${NC}" || echo -e "${RED}NOT SET${NC}")"
 echo -e "  Program ID:        ${GREEN}${PROGRAM_ID:-137}${NC}"
-echo -e "  Sustained Phase:   ${GREEN}${DURATION}s @ ${RATE} req/s${NC}"
 echo -e "  Results File:      ${GREEN}${REPORT_FILE}${NC}"
 echo ""
 
@@ -101,14 +75,9 @@ echo ""
 echo -e "${YELLOW}🚀 Starting load test...${NC}"
 echo ""
 
-artillery run load-tests/artillery.yml \
+npx npx npx artillery run load-tests/artillery.yml \
   --target "$TARGET_URL" \
-  --set baseUrl="$TARGET_URL" \
-  --set apiKey="$BP_API_KEY" \
-  --set phases.2.duration="$DURATION" \
-  --set phases.2.arrivalRate="$RATE" \
-  -o "$REPORT_FILE" \
-  --plugins "statsd" 2>/dev/null || true
+  --output "$REPORT_FILE" 2>/dev/null || true
 
 TEST_EXIT_CODE=$?
 
@@ -142,29 +111,8 @@ if [ -f "$REPORT_FILE" ]; then
   " 2>/dev/null || echo "  (Could not parse results)"
 fi
 
-# Generate HTML report if not skipped
-if [ "$SKIP_REPORT" = false ] && command -v artillery &> /dev/null; then
-  echo ""
-  echo -e "${YELLOW}📊 Generating HTML report...${NC}"
-
-  artillery report "$REPORT_FILE" -o "$HTML_REPORT" 2>/dev/null || true
-
-  if [ -f "$HTML_REPORT" ]; then
-    echo -e "${GREEN}✓ HTML report saved to: ${HTML_REPORT}${NC}"
-
-    # Open report if requested
-    if [ "$OPEN_REPORT" = true ]; then
-      echo -e "${YELLOW}📖 Opening report in browser...${NC}"
-      if command -v open &> /dev/null; then
-        open "$HTML_REPORT"
-      elif command -v xdg-open &> /dev/null; then
-        xdg-open "$HTML_REPORT"
-      else
-        echo -e "${YELLOW}ℹ️  Cannot auto-open. Visit: file://${PWD}/${HTML_REPORT}${NC}"
-      fi
-    fi
-  fi
-fi
+# HTML report generation is no longer supported in Artillery 2.0+
+# Use Artillery Cloud (https://app.artillery.io) for visualization
 
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
