@@ -10,11 +10,12 @@ This repository accompanies a QA test strategy (see [`docs/`](docs/)) and a Post
 
 ```
 .
-├── src/
-│   ├── api/            # Typed BerkeleyClient + response/request types
-│   ├── fixtures/       # Playwright fixtures (client, seeded account)
-│   └── utils/          # Config loader + test-data factory
 ├── tests/
+│   ├── fixtures/       # Playwright fixtures (client, seeded account)
+│   │   └── api-fixtures.ts
+│   ├── support/        # Test infrastructure & helpers
+│   │   ├── api/        # Typed BerkeleyClient + response/request types
+│   │   └── utils/      # Config loader + test-data factory
 │   ├── cardholders/    # CRUD, validation, negative paths
 │   ├── accounts/       # Resolution, balance, status transitions
 │   ├── value-loads/    # Loads, money-conservation, idempotency
