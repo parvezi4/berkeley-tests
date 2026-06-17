@@ -16,6 +16,10 @@ playwright/.cache/
 /load-tests/results/**/*.json
 /load-tests/results/**/*.html
 
+# Newman test results (keep directory with .gitkeep)
+/newman-results/**/*.json
+/newman-results/**/*.xml
+
 # Logs
 *.log
 npm-debug.log*

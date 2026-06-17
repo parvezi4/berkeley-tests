@@ -196,12 +196,23 @@ jobs:
           BP_API_KEY: ${{ secrets.BP_API_KEY }}
         timeout-minutes: 20
 
+      - name: Publish Newman test report
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v1
+        with:
+          name: Newman Test Results
+          path: newman-results/newman-results.xml
+          reporter: java-junit
+          fail-on-error: false
+
       - name: Upload Newman artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: newman-artifacts
-          path: load-tests/results/
+          path: |
+            newman-results/
+            load-tests/results/
           retention-days: 30
           compression-level: 6
 
