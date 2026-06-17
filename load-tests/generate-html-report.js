@@ -29,10 +29,28 @@ function generateReport(jsonFile, htmlFile) {
   const totalRequests = counters['http.requests'] || 0;
   const totalResponses = counters['http.responses'] || 0;
   const totalErrors = counters['errors.Failed capture or match'] || 0;
-  const rate429 = counters['http.codes.429'] || 0;
-  const rate4xx = counters['http.codes.4xx'] || 0;
-  const rate5xx = counters['http.codes.5xx'] || 0;
-  const rate2xx = counters['http.codes.2xx'] || 0;
+
+  // Aggregate status codes by range
+  let rate2xx = 0;
+  let rate4xx = 0;
+  let rate5xx = 0;
+  let rate429 = 0;
+
+  for (const [key, value] of Object.entries(counters)) {
+    if (key.startsWith('http.codes.')) {
+      const code = parseInt(key.split('.')[2]);
+      if (code === 429) {
+        rate429 += value;
+      } else if (code >= 200 && code < 300) {
+        rate2xx += value;
+      } else if (code >= 400 && code < 500) {
+        rate4xx += value;
+      } else if (code >= 500 && code < 600) {
+        rate5xx += value;
+      }
+    }
+  }
+
   const failed = counters['vusers.failed'] || 0;
   const completed = counters['vusers.completed'] || 0;
 
