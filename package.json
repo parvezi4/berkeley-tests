@@ -12,18 +12,40 @@
     "test:smoke": "playwright test --grep @smoke",
     "test:headed": "playwright test --reporter=list",
     "report": "playwright show-report",
-    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results",
+    "lint:fix": "eslint . --ext .ts --fix --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results",
+    "check": "npm run typecheck && npm run lint && npm test",
     "newman": "node scripts/run-newman.js",
     "newman:local": "node scripts/run-newman.js --verbose"
   },
-  "keywords": ["playwright", "typescript", "api-testing", "qa", "fintech", "berkeley-payments"],
+  "keywords": [
+    "playwright",
+    "typescript",
+    "api-testing",
+    "qa",
+    "fintech",
+    "berkeley-payments"
+  ],
   "license": "MIT",
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "tsc --noEmit"
+    ]
+  },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@playwright/test": "^1.48.0",
     "@types/node": "^22.7.0",
-    "typescript": "^5.6.0",
+    "@typescript-eslint/eslint-plugin": "8.61.1",
+    "@typescript-eslint/parser": "8.61.1",
+    "artillery": "^2.0.0",
     "dotenv": "^16.4.5",
+    "eslint": "10.5.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.0.7",
     "newman": "^6.2.0",
-    "artillery": "^2.0.0"
+    "typescript": "^5.6.0"
   }
 }
