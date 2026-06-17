@@ -37,7 +37,9 @@ test.describe('Cardholders', () => {
    * retrieved data matches what was created.
    */
   test('Get Cardholder returns the same id that was created', async ({ client }) => {
-    const createRes = await client.createCardholder(newCardholder());
+    const createRes = await createCardholderWithRetry(() =>
+      client.createCardholder(newCardholder()),
+    );
     const created = BerkeleyClient.unwrap<CreateCardholderResponse>(await createRes.json());
 
     const getRes = await client.getCardholder(created.id);
@@ -64,7 +66,9 @@ test.describe('Cardholders', () => {
    * Note: Address fields have a cooldown period and are tested separately.
    */
   test('Update Cardholder accepts a partial personal-info update', async ({ client }) => {
-    const createRes = await client.createCardholder(newCardholder());
+    const createRes = await createCardholderWithRetry(() =>
+      client.createCardholder(newCardholder()),
+    );
     const created = BerkeleyClient.unwrap<CreateCardholderResponse>(await createRes.json());
 
     // Note: address fields are intentionally omitted — Berkeley enforces an
