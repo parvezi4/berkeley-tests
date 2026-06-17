@@ -86,8 +86,9 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BREAKING_POINT=""
 MAX_SAFE_LOAD=""
 
+ITERATION=0
 for LOAD in "${LOAD_LEVELS[@]}"; do
-  ITERATION=$((${LOAD_LEVELS[@]%$LOAD*} | wc -w))
+  ITERATION=$((ITERATION + 1))
   REPORT_FILE="${RESULTS_DIR}/incremental/report_${TIMESTAMP}_${LOAD}rps.json"
   HTML_FILE="${RESULTS_DIR}/incremental/report_${TIMESTAMP}_${LOAD}rps.html"
 
