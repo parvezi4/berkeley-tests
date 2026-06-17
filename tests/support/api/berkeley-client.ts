@@ -116,6 +116,13 @@ export class BerkeleyClient {
     });
   }
 
+  createValueUnload(body: CreateValueLoadRequest): Promise<APIResponse> {
+    return this.request.post(this.path('value_loads', 'unload'), {
+      headers: this.headers,
+      data: body,
+    });
+  }
+
   listValueLoads(params?: {
     program_id?: number;
     limit?: number;

@@ -159,3 +159,82 @@ test.describe('Value Loads', () => {
     expect(res.status()).toBeLessThan(500);
   });
 });
+
+/**
+ * VALUE UNLOAD (OPENAPI-SPEC FINDING)
+ *
+ * OpenAPI Spec Findings:
+ *   - Separate endpoint: POST /api/v1/card_issuing/value_loads/unload
+ *   - Must be enabled per program (expect 4xx if not enabled)
+ *   - Same schema as load (account_id, amount, external_tag, idempotency_key, etc.)
+ *   - Purpose: Withdraw/refund funds from a cardholder account
+ *
+ * Assumption: Unload may not be enabled on all staging programs.
+ * These tests are lenient: accept either success (201) or "not enabled" (422/4xx).
+ */
+test.describe('Value Unload [OPENAPI-SPEC]', () => {
+  test('[spec-documented] unload endpoint exists; either works or is disabled per program', async ({
+    client,
+    seededAccount,
+  }) => {
+    // Lenient test: unload is program-specific
+    // Accept: 201 (works), 422 (not enabled), or other 4xx (unsupported)
+    const res = await client.createValueUnload({
+      account_id: seededAccount.accountId,
+      amount: 500, // 500 units = $5.00
+      external_tag: uniqueTag(),
+    });
+
+    test.info().annotations.push({
+      type: 'note',
+      description: `Unload endpoint status: HTTP ${res.status()}`,
+    });
+
+    if (res.status() === 201) {
+      test.info().annotations.push({
+        type: 'note',
+        description: 'Unload feature is ENABLED on this program. Funds withdrawn successfully.',
+      });
+    } else if (res.status() === 422 || (res.status() >= 400 && res.status() < 500)) {
+      test.info().annotations.push({
+        type: 'note',
+        description: 'Unload feature is NOT ENABLED on this program (expected for many programs).',
+      });
+    } else if (res.status() >= 500) {
+      test.info().annotations.push({
+        type: 'warning',
+        description: 'Unload returned server error (5xx). Check staging provider status.',
+      });
+    }
+
+    // Accept both: success or "not enabled"
+    expect(res.status() < 500).toBe(true); // At minimum, not a 5xx error
+  });
+
+  test('[discovery] unload affects balance if enabled', async ({ client, seededAccount }) => {
+    // Only run if unload is enabled (lenient check)
+    // First, attempt unload
+    const beforeUnload = await availableBalance(client, seededAccount.accountId);
+
+    const unloadRes = await client.createValueUnload({
+      account_id: seededAccount.accountId,
+      amount: 100,
+      external_tag: uniqueTag(),
+    });
+
+    // If unload succeeded, balance should decrease
+    if (unloadRes.status() === 201) {
+      const afterUnload = await availableBalance(client, seededAccount.accountId);
+      expect(afterUnload).toBeLessThan(beforeUnload);
+      test.info().annotations.push({
+        type: 'note',
+        description: `Unload: balance decreased from ${beforeUnload} to ${afterUnload}`,
+      });
+    } else {
+      test.info().annotations.push({
+        type: 'note',
+        description: `Unload not enabled on this program (status: ${unloadRes.status()}). Skipping balance verification.`,
+      });
+    }
+  });
+});

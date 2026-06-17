@@ -133,3 +133,62 @@ test.describe('Accounts and Cards', () => {
 async function bodyOnFail(res: { text: () => Promise<string>; status: () => number }): Promise<string> {
   return `unexpected ${res.status()}: ${await res.text().catch(() => '<no body>')}`;
 }
+
+/**
+ * STATUS ACTIONS (OPENAPI-SPEC FINDINGS)
+ *
+ * OpenAPI Spec Findings:
+ *   - Status field uses ACTION KEYWORDS (not state names)
+ *   - Actions: suspend, unsuspend, mark_card_active, mark_card_lost, etc.
+ *   - Terminal states: lost, stolen (cannot change after being set)
+ *
+ * These tests verify that action keywords work as documented.
+ */
+test.describe('Accounts Status Actions [OPENAPI-SPEC]', () => {
+  test('[spec-confirmed] suspend action works (reversible)', async ({ client, seededAccount }) => {
+    // OpenAPI documents: status: "suspend" (action keyword)
+    const suspendRes = await client.modifyAccountStatus(
+      seededAccount.accountId,
+      'suspend',
+      seededAccount.lastFourDigits
+    );
+
+    expect([200, 201]).toContain(suspendRes.status());
+
+    // Verify can unsuspend after
+    const unsuspendRes = await client.modifyAccountStatus(
+      seededAccount.accountId,
+      'unsuspend',
+      seededAccount.lastFourDigits
+    );
+
+    expect([200, 201]).toContain(unsuspendRes.status());
+  });
+
+  test('[assumption] state name "suspended" (not action) may fail', async ({ client, seededAccount }) => {
+    // Assumption: "suspended" is a state name, not an action
+    // Should fail if API strictly uses action keywords
+    const res = await client.modifyAccountStatus(
+      seededAccount.accountId,
+      'suspended' as never, // State name, not action
+      seededAccount.lastFourDigits
+    );
+
+    test.info().annotations.push({
+      type: 'note',
+      description: `State name "suspended" status: HTTP ${res.status()}`
+    });
+
+    if (res.status() >= 400) {
+      test.info().annotations.push({
+        type: 'note',
+        description: 'API correctly rejects state names; requires action keywords'
+      });
+    } else {
+      test.info().annotations.push({
+        type: 'warning',
+        description: 'API accepts state names (lenient). OpenAPI shows action keywords.'
+      });
+    }
+  });
+});
