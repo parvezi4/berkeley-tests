@@ -42,7 +42,30 @@ cp .env.example .env
 
 ## Running Load Tests
 
-### Local Execution
+### Recommended: Using the Reporter Script
+
+The easiest way to run tests and view results:
+
+```bash
+# Run with defaults (120s @ 15 req/s) and open HTML report
+./load-tests/run-and-report.sh --open-report
+
+# Run with custom parameters
+./load-tests/run-and-report.sh --duration 300 --rate 50
+
+# Run without generating HTML report
+./load-tests/run-and-report.sh --no-report
+```
+
+**What the script does:**
+- ✅ Validates `BP_API_KEY` is set
+- ✅ Runs Artillery with your test config
+- ✅ Saves JSON results to `load-tests/results/`
+- ✅ Generates colorized summary metrics
+- ✅ Creates HTML report (optional)
+- ✅ Opens report in browser (with `--open-report`)
+
+### Manual Execution
 
 **Quick smoke test** (30s warmup + 60s ramp-up):
 ```bash
@@ -66,9 +89,9 @@ artillery run load-tests/artillery.yml \
   -o artillery-report.json
 ```
 
-**Generate HTML report from results:**
+**Generate HTML report from saved results:**
 ```bash
-artillery report artillery-report.json
+artillery report artillery-report.json -o report.html
 ```
 
 ### CI/CD Integration
@@ -265,6 +288,63 @@ Summary report @ 13:45:23 UTC
 - ✅ p95 < 500ms — acceptable latency
 - ✅ No 5xx errors — backend healthy
 - ✅ 401 count matches auth negative tests (5% weight = ~50 req)
+
+## Results & Reporting
+
+### Understanding Result Files
+
+After running tests, results are saved to `load-tests/results/`:
+
+```
+load-tests/results/
+├── report_20240616_154203.json     # Raw Artillery results (machine-readable)
+└── report_20240616_154203.html     # HTML report (human-readable)
+```
+
+**JSON Results (`report_*.json`):**
+- Complete metrics in structured format
+- Useful for programmatic analysis, CI/CD pipelines
+- Can be imported into dashboards or monitoring tools
+- Archived for historical trend analysis
+
+**HTML Report (`report_*.html`):**
+- Visual charts and graphs
+- Response time distribution
+- Scenario breakdown
+- Status code summary
+- Easy to share with stakeholders
+
+### Reporter Script (`run-and-report.sh`)
+
+The included bash script simplifies running tests and generating reports:
+
+**Features:**
+- Automatically loads environment from `.env`
+- Validates `BP_API_KEY` is set
+- Saves results with timestamp-based filenames
+- Generates colorized summary metrics in terminal
+- Creates HTML report automatically
+- Optional: Opens report in default browser
+- Allows overriding duration and arrival rate
+
+**Usage Examples:**
+
+```bash
+# Basic: Run and show summary
+./load-tests/run-and-report.sh
+
+# Open report in browser
+./load-tests/run-and-report.sh --open-report
+
+# Custom load: 5 minutes at 50 req/s
+./load-tests/run-and-report.sh --duration 300 --rate 50
+
+# Just run, no HTML report
+./load-tests/run-and-report.sh --no-report
+
+# Custom target URL
+./load-tests/run-and-report.sh --target https://api.production.pungle.io
+```
 
 ## Monitoring & Observability
 

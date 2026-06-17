@@ -1,0 +1,2 @@
+# Directory for Artillery load test results
+# Results are gitignored; this file ensures the directory is tracked
