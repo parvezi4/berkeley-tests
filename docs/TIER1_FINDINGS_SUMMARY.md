@@ -80,15 +80,16 @@ amount: "1000" // String, not integer
 
 ---
 
-#### Required Fields May Be Optional
-| Field | OpenAPI | Actual Behavior |
+#### Required Field Policy Clarified
+| Field | Updated Status | Behavior |
 |-------|---------|-----------------|
-| external_tag | REQUIRED | ✅ Accepted when omitted |
+| external_tag (value loads) | OPTIONAL | ✅ Recommended but not enforced |
+| program_id (list value loads) | OPTIONAL | ✅ Defaults to authenticated program |
 | phone (Canada) | REQUIRED | ⚠️ Needs verification |
 
-**Finding:** external_tag marked required in OpenAPI but API accepts loads without it.
+**Finding:** Updated OpenAPI spec now marks `external_tag` and `program_id` as optional with clear descriptions.
 
-**Recommendation:** Clarify with Berkeley which fields are truly required vs. optional.
+**Note:** The spec now uses a "required field policy" noting that only *demonstrably* required fields (rejected if omitted) are marked required.
 
 ---
 
@@ -121,18 +122,18 @@ Test results: **Constraints not strictly validated**
 
 ---
 
-### 5. 🏷️ **External Tag Behavior Unclear**
+### 5. 🏷️ **External Tag: Optional and Flexible**
 
 | Scenario | Result |
 |----------|--------|
-| Load without external_tag | ✅ Accepted (despite OpenAPI required) |
-| Duplicate external_tag | ✅ Both loads created (duplicates allowed) |
+| Load without external_tag | ✅ Accepted (optional field) |
+| Duplicate external_tag | ✅ Both loads created (no uniqueness constraint) |
 | Special chars in tag | ✅ Accepted |
 | 255-char tag | ✅ Accepted |
 
-**Finding:** external_tag is more flexible than spec suggests.
+**Finding:** Updated spec correctly marks `external_tag` as optional/recommended, not required.
 
-**Recommendation:** Document actual requirements (not required, no uniqueness constraint, accepts special chars).
+**Behavior:** No uniqueness enforcement, accepts special characters, no length limits observed.
 
 ---
 
@@ -165,7 +166,8 @@ Separate POST endpoint for unloads:
 | Date format (update) | YYYY-MM-DD | ❌ Rejects | 🐛 Bug or spec wrong |
 | Field maxLength | Enforced (50, 40, 30, 100) | ❌ Not enforced | 📝 Lenient |
 | Amount type | Integer only | ✅ Accepts strings too | 📝 Type coercion |
-| external_tag | Required | ❌ Works without it | 📝 Lenient |
+| external_tag | Optional/recommended | ✅ Works as specified | ✓ Updated spec correct |
+| program_id (list) | Optional | ✅ Works as specified | ✓ Updated spec correct |
 | Phone required | Canada only | ⚠️ Unclear | ❓ Needs clarification |
 | Status actions | Keywords only | ✅ Works | ✓ Confirmed |
 

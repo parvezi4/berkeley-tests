@@ -148,14 +148,16 @@ shipped        — Card shipped
 
 ### Value Loads: Create Request
 
-**CRITICAL FINDING:** external_tag is REQUIRED, not optional!
+**Updated Finding:** external_tag is NOT required — recommended but not enforced.
 
 ```
 account_id (integer, required)
-external_tag (string, required) ⚠️ NOT OPTIONAL
 amount (integer, required, smallest currency unit)
    Example: $10.00 = 1000 (not 10.00)
    Min/max NOT documented
+external_tag (string, optional, recommended)
+   Purpose: User-defined reference tag for tracking/filtering
+   Note: Not required, duplicates allowed, no uniqueness enforced
 message (string, optional, "alphanumeric message")
 idempotency_key (string, optional but recommended)
    Purpose: "Unique key to prevent duplicate processing on retry"
@@ -188,10 +190,10 @@ processor_reference (string, UUID format)
 ```
 Default limit: 50
 Default offset: 0
-Filters: program_id (required!), external_tag (optional)
+Filters: program_id (optional, defaults to authenticated program), external_tag (optional)
 ```
 
-⚠️ **FINDING:** `program_id` is **required as query parameter** in list value loads.
+**Updated:** `program_id` is **optional** in list value loads — defaults to the authenticated program if omitted.
 
 ---
 
