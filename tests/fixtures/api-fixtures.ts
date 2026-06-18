@@ -14,6 +14,18 @@ import type { Account, CreateCardholderResponse } from '../support/api/types.js'
  * `seededAccount` chains three real calls — create cardholder, resolve the
  * account by processor reference, read the account — exactly as a consumer
  * integration would, so the fixture itself exercises the happy path.
+ *
+ * ⚠️  WARNING: Do NOT use seededAccount in tests that:
+ *   - Change account status (suspend / mark_lost / mark_stolen)
+ *   - Drain the full balance or exceed balance limits
+ *   - Belong to exploration, boundary, or transition test suites
+ *
+ * Sharing a mutable account across multiple tests causes terminal state
+ * contamination — once one test marks an account lost, all subsequent tests
+ * using the same account will fail with `resource_not_found`.
+ *
+ * Instead, use `createFreshAccount()` from `./fresh-account.ts` to create
+ * a new cardholder + account for each test that modifies account state.
  */
 interface Fixtures {
   client: BerkeleyClient;

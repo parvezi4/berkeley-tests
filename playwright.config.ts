@@ -75,5 +75,19 @@ export default defineConfig({
       // Run sequentially to avoid staging API overload with state-dependent tests
       fullyParallel: false,
     },
+    {
+      name: 'tier2',
+      testDir: './tests/tier2',
+      // Tier 2: core idempotency, conservation, format validation
+      // Tests use createFreshAccount() per test, safe to parallelize
+      fullyParallel: true,
+    },
+    {
+      name: 'tier3',
+      testDir: './tests/tier3',
+      // Tier 3: error codes, state transitions
+      // Tests use createFreshAccount() per test, safe to parallelize
+      fullyParallel: true,
+    },
   ],
 });
