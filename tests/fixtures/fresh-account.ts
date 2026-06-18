@@ -1,4 +1,5 @@
 import { type APIRequestContext } from '@playwright/test';
+import { setTimeout as delay } from 'timers/promises';
 import { BerkeleyClient } from '../support/api/berkeley-client.js';
 import { newCardholder, uniqueTag } from '../support/utils/test-data.js';
 import type { CreateCardholderResponse, Account } from '../support/api/types.js';
@@ -13,6 +14,9 @@ import type { CreateCardholderResponse, Account } from '../support/api/types.js'
  *
  * Each call creates an independent cardholder. Terminal state changes on one
  * account cannot affect any other test.
+ *
+ * Includes retry logic with exponential backoff to handle transient 500 errors
+ * from the staging API.
  */
 export async function createFreshAccount(
   request: APIRequestContext,
@@ -20,13 +24,34 @@ export async function createFreshAccount(
 ) {
   const client = new BerkeleyClient(request);
 
-  const createRes = await client.createCardholder(
+  let createRes = await client.createCardholder(
     newCardholder({ load_amount: loadAmount }),
   );
+  let lastError = '';
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    if (createRes.status() === 201) break;
+
+    // If 5xx error, retry with exponential backoff
+    if (createRes.status() >= 500 && attempt < 3) {
+      const waitMs = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
+      lastError = `Attempt ${attempt}: ${createRes.status()} — retrying in ${waitMs}ms`;
+      await delay(waitMs);
+      createRes = await client.createCardholder(
+        newCardholder({ load_amount: loadAmount }),
+      );
+      continue;
+    }
+
+    // Non-5xx error: fail immediately (client error)
+    lastError = `Attempt ${attempt}: ${createRes.status()} ${await createRes.text()}`;
+    break;
+  }
+
   if (createRes.status() !== 201) {
     throw new Error(
       `createFreshAccount: cardholder creation failed ` +
-      `${createRes.status()}: ${await createRes.text()}`,
+      `(all retries exhausted): ${lastError}`,
     );
   }
   const created = BerkeleyClient.unwrap<CreateCardholderResponse>(

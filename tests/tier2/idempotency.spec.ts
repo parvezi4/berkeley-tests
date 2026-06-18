@@ -150,12 +150,12 @@ test.describe('Value Load Idempotency', () => {
     const first = await acc.client.createValueLoad({
       account_id: acc.accountId,
       amount: AMOUNT,
-      external_tag: uniqueTag(),
+      external_tag: `no-key-load-1-${Date.now()}`,
     });
     const second = await acc.client.createValueLoad({
       account_id: acc.accountId,
       amount: AMOUNT,
-      external_tag: uniqueTag(),
+      external_tag: `no-key-load-2-${Date.now()}`,
     });
 
     expect(first.status()).toBe(201);

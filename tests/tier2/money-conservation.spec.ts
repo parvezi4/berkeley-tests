@@ -29,12 +29,13 @@ test.describe('Money Conservation', () => {
     const AMOUNTS = [100, 200, 150];
     const before = await balance(acc.client, acc.accountId);
 
-    for (const amt of AMOUNTS) {
+    for (let i = 0; i < AMOUNTS.length; i++) {
+      const amt = AMOUNTS[i];
       const res = await acc.client.createValueLoad({
         account_id: acc.accountId,
         amount: amt,
         external_tag: uniqueTag(),
-        idempotency_key: uniqueTag('idem'),
+        idempotency_key: `${uniqueTag('seq')}-${i}`,
       });
       expect(res.status()).toBe(201);
     }
@@ -91,12 +92,13 @@ test.describe('Money Conservation', () => {
     const AMOUNTS = [100, 200];
     const ids: number[] = [];
 
-    for (const amt of AMOUNTS) {
+    for (let i = 0; i < AMOUNTS.length; i++) {
+      const amt = AMOUNTS[i];
       const res = await acc.client.createValueLoad({
         account_id: acc.accountId,
         amount: amt,
         external_tag: uniqueTag(),
-        idempotency_key: uniqueTag('idem'),
+        idempotency_key: `${uniqueTag('list')}-${i}`,
       });
       expect(res.status()).toBe(201);
       ids.push(BerkeleyClient.unwrap<ValueLoad>(await res.json()).id);

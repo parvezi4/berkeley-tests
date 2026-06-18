@@ -87,10 +87,9 @@ test.describe('Format Validation', () => {
   });
 
   test.describe('Field length enforcement', () => {
-    // Confirmed: soft up to ~51 chars, hard limit somewhere between 51 and 100.
-    // Run explore-field-length-limit.spec.ts to find the exact threshold,
-    // then update HARD_LIMIT below.
-    const HARD_LIMIT = 100; // update once binary search confirms exact value
+    // Binary search confirmed: soft up to 60 chars, hard limit at 61 chars.
+    // See PART 5 (explore-field-length-limit.spec.ts) for the binary search results.
+    const HARD_LIMIT = 61; // accepts up to 60, rejects at 61
 
     test('30-char first_name is accepted and persisted without truncation', async ({
       request,
