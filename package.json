@@ -16,6 +16,7 @@
     "lint": "eslint . --ext .ts --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results",
     "lint:fix": "eslint . --ext .ts --fix --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results",
     "check": "npm run typecheck && npm run lint && npm test",
+    "explore": "playwright test tests/exploration/ --reporter=list",
     "newman": "node scripts/run-newman.js",
     "newman:local": "node scripts/run-newman.js --verbose"
   },
