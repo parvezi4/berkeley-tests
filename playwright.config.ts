@@ -68,5 +68,12 @@ export default defineConfig({
       // Parallel fixture execution caused 500 errors on cardholder creation
       fullyParallel: false,
     },
+    {
+      name: 'exploration',
+      testDir: './tests/exploration',
+      // Empirical exploration tests: diagnostic suite for API behaviour validation
+      // Run sequentially to avoid staging API overload with state-dependent tests
+      fullyParallel: false,
+    },
   ],
 });
