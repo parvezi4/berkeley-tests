@@ -16,10 +16,12 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // Retry once on CI to absorb transient network/provider blips; never locally.
   retries: process.env.CI ? 1 : 0,
-  // Single worker on CI to reduce staging API load and prevent test flakiness.
-  // Tests were failing with 500 errors when multiple workers hit the API simultaneously.
-  // Local development can use multiple workers (undefined = auto-detect CPU count).
-  workers: process.env.CI ? 1 : undefined,
+  // Single worker by default to prevent rate limiting and test flakiness.
+  // Tests fail with 500 errors when multiple workers hit the API simultaneously.
+  // Override with WORKERS environment variable for faster local execution:
+  //   WORKERS=4 npm test        (run with 4 workers)
+  //   WORKERS=auto npm test     (auto-detect CPU count)
+  workers: process.env.WORKERS ? (process.env.WORKERS === 'auto' ? undefined : parseInt(process.env.WORKERS)) : 1,
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'playwright-report' }],

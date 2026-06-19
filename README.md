@@ -77,6 +77,23 @@ npm test           # Run Playwright tests
 npm run newman     # Run Newman/Postman tests
 ```
 
+### Parallel test execution (advanced)
+
+Tests run with **1 worker by default** to prevent rate limiting on the staging API. To speed up local testing, you can override this:
+
+```bash
+# Run with 4 workers (faster, but higher API load)
+WORKERS=4 npm test
+
+# Auto-detect CPU count
+WORKERS=auto npm test
+
+# Back to single worker (stable, rate-limit friendly)
+npm test
+```
+
+**⚠️ Note:** Multiple workers increase API load and may trigger rate limiting. Use with caution on staging.
+
 ### GitHub Actions setup
 
 To run tests in CI, configure these GitHub repository settings:

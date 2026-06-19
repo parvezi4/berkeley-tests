@@ -44,6 +44,20 @@ cp .env.example .env
 #   PROGRAM_ID     - Program under test (default: 137)
 ```
 
+### Functional Test Configuration
+
+**Important:** Before running load tests, stop any functional Playwright tests. Functional tests run with `WORKERS=1` by default to prevent rate limiting, but you can override this:
+
+```bash
+# Run functional tests with multiple workers (careful on staging!)
+WORKERS=4 npm test
+
+# Run functional tests with single worker (default, rate-limit friendly)
+npm test
+```
+
+Do not run functional tests with multiple workers simultaneously with load tests, as this can cause double load on the staging API.
+
 ## Quick Start
 
 ### Run a quick smoke test (30 seconds, minimal load)
