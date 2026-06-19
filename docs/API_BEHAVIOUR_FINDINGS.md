@@ -1,14 +1,15 @@
 # Berkeley API — Observed Behaviour, Assumptions & Open Questions
 
-**Purpose**: This document records what we know empirically from exploratory testing,
+**Purpose**: This document records what we know empirically from testing,
 what we are assuming where docs are silent or inconsistent, and what questions remain
-for clarification with the Berkeley engineering team. It is a living document updated
-as the exploration suite (`tests/exploration/`) produces results.
+for clarification with the Berkeley engineering team. Updated with results from
+integration and verification layers.
 
 **Approach**: Where documentation is ambiguous or silent, we test empirically and
 document what we observe. Read-back-after-write (create → GET → assert) is used to
 verify what the API actually persisted vs. what it accepted. Assumptions are tagged
-`[ASSUMED]` until confirmed by test or by Berkeley.
+`[UNCONFIRMED]`, `[CONFIRMED]`, or `[REFUTED]` based on test results. GitHub issue
+references link to blocking issues or validation details.
 
 ---
 
@@ -50,25 +51,25 @@ Assumptions we are making based on: observed API behaviour, analogous payments
 industry standards, or logical inference. All marked `[ASSUMED]` until validated
 by the exploration suite or confirmed by Berkeley.
 
-| # | Area | Assumption | Basis | Result | Status |
-|---|---|---|---|---|---|
-| A1 | Negative balance | Unloading more than available balance returns a 4xx (insufficient funds). The API does **not** allow negative balances on prepaid cards. | Industry standard for prepaid cards; docs silent on negative balances | EXPLORE-1: Tests inconclusive due to account lookup issues; no negative balance observed | [UNCONFIRMED] |
-| A2 | Negative balance | The error code for insufficient funds is distinct from a generic 422 (e.g., `insufficient_funds` or similar). | Inferred from the `cannot_update_resource` pattern we've seen | EXPLORE-1: No sufficient-funds error encountered (account issues) | [UNCONFIRMED] |
-| A3 | Negative balance | If a negative balance somehow exists, GET balance returns it as a negative string e.g. `"-50.00"` | Consistent with how positive balances are returned as strings | EXPLORE-1: No negative balance created in tests | [UNCONFIRMED] |
-| A4 | Idempotency | Replaying the same `idempotency_key` with the same `account_id` and `amount` returns 2xx and does **not** create a second load (balance moves once). | Tier 1 test passes, confirmed empirically | EXPLORE-2: HTTP 400 (account lookup failure) - test inconclusive | [UNCONFIRMED] |
-| A5 | Idempotency | Replaying with the same key but a **different amount** is rejected (conflict) rather than silently duplicated. | Standard idempotency semantics | EXPLORE-2: Error code `duplicate_request` with message "Different params provided with same Idempotency Key" | [CONFIRMED] |
-| A6 | Idempotency | Idempotency key TTL is at least 24 hours (sufficient for a test session). | Industry standard; Stripe uses 24h | EXPLORE-2: Not tested (TTL validation requires >24h wait) | [UNCONFIRMED] |
-| A7 | Idempotency | `idempotency_key` is scoped per account — the same key string can be used safely on different accounts. | Most common implementation pattern | EXPLORE-2: Key is **GLOBALLY SCOPED**, not per-account. Error: `duplicate_request` when reusing key on different account | [REFUTED] |
-| A8 | Status transitions | `suspend` can only be called on an `active` card; `unsuspend` only on a `suspended` card. Calling either on the wrong source state returns a 4xx. | Docs imply reversible pair; terminal states explicitly noted | EXPLORE-3: Tests passed for suspend/unsuspend (account lookup issues prevented full validation) | [PARTIALLY CONFIRMED] |
-| A9 | Status transitions | `mark_card_lost` and `mark_card_stolen` can be called from any non-terminal state. | Fraud response should always be available | EXPLORE-3: Tests show transitions work (200/201 responses observed) | [CONFIRMED] |
-| A10 | Status transitions | A GET on a `lost` or `stolen` account still returns balance and transaction history. The status blocks operations, not reads. | Standard banking behaviour | EXPLORE-3: All GET operations return HTTP 400 (account issue); operations and reads both blocked | [UNCONFIRMED] |
-| A11 | Field lengths | `maxLength` constraints on name fields (30–50 chars) are **soft** — the API accepts longer values without error. | Observed in Tier 1 testing | EXPLORE-4: first_name 30 chars: ✓ 201, 51 chars: ✓ 201, 100 chars: ✗ 400. **Hard limit at ~100 chars** | [REFUTED] |
-| A12 | Field lengths | After a write with an over-length value, a subsequent GET returns the value as submitted (not silently truncated). | If truncation occurred, it would cause data loss without warning | EXPLORE-4: first_name 51 chars persisted as-is (no truncation observed); first_name 100 chars rejected | [CONFIRMED] |
-| A13 | Amount limits | There is no hard maximum amount enforced. Very large amounts (e.g., 99,999,999) are accepted. | Observed in Tier 1 testing | EXPLORE-1: Large amount (99,999,999) accepted (HTTP 400 due to account issue, but no validation error) | [CONFIRMED] |
-| A14 | Amount limits | Amount = 0 is accepted without error (no-op load). | Observed in Tier 1 testing | EXPLORE-1: Amount = 0 returns HTTP 400 (account issue); not tested on valid account | [UNCONFIRMED] |
-| A15 | Type coercion | The API accepts string values for integer `amount` fields (`"100"` coerced to `100`). | Observed in Tier 1 testing | EXPLORE-4: amount as string "100": HTTP 400 (account issue); amount as float: HTTP 400; null: HTTP 400; non-numeric: HTTP 400 | [UNCONFIRMED] |
-| A16 | external_tag | Duplicate `external_tag` values are permitted across multiple loads on the same account (not a uniqueness key). | Confirmed in Tier 1 testing | Verified in Tier 1; no contradictions in EXPLORE tests | [CONFIRMED] |
-| A17 | date_of_birth | The correct accepted format for Update Cardholder `date_of_birth` is the full ISO timestamp `YYYY-MM-DDTHH:mm:ss.sssZ` (matching the embedded OpenAPI example). | OpenAPI JSON example on the page uses this format; plain `YYYY-MM-DD` rejected | EXPLORE-4: dd-MM-yyyy: ✓ 201 persisted; YYYY-MM-DD: ✗ 400 error; ISO timestamp: ✗ 400 error. **Correct format is dd-MM-yyyy** | [REFUTED] |
+| # | Area | Assumption | Basis | Result | Status | GitHub |
+|---|---|---|---|---|---|---|
+| A1 | Negative balance | Unloading more than available balance returns a 4xx (insufficient funds). The API does **not** allow negative balances on prepaid cards. | Industry standard for prepaid cards; docs silent on negative balances | EXPLORE-1: Tests inconclusive due to account lookup issues; no negative balance observed | [UNCONFIRMED] | [#18](https://github.com/parvezi4/berkeley-tests/issues/18) |
+| A2 | Negative balance | The error code for insufficient funds is distinct from a generic 422 (e.g., `insufficient_funds` or similar). | Inferred from the `cannot_update_resource` pattern we've seen | EXPLORE-1: No sufficient-funds error encountered (account issues) | [UNCONFIRMED] | [#18](https://github.com/parvezi4/berkeley-tests/issues/18) |
+| A3 | Negative balance | If a negative balance somehow exists, GET balance returns it as a negative string e.g. `"-50.00"` | Consistent with how positive balances are returned as strings | EXPLORE-1: No negative balance created in tests | [UNCONFIRMED] | [#18](https://github.com/parvezi4/berkeley-tests/issues/18) |
+| A4 | Idempotency | Replaying the same `idempotency_key` with the same `account_id` and `amount` returns 2xx and does **not** create a second load (balance moves once). | Tier 1 test passes, confirmed empirically | EXPLORE-2: HTTP 400 (account lookup failure) - test inconclusive | [UNCONFIRMED] | [#18](https://github.com/parvezi4/berkeley-tests/issues/18) |
+| A5 | Idempotency | Replaying with the same key but a **different amount** is rejected (conflict) rather than silently duplicated. | Standard idempotency semantics | EXPLORE-2: Error code `duplicate_request` with message "Different params provided with same Idempotency Key" | [CONFIRMED] | [#15](https://github.com/parvezi4/berkeley-tests/issues/15) |
+| A6 | Idempotency | Idempotency key TTL is at least 24 hours (sufficient for a test session). | Industry standard; Stripe uses 24h | EXPLORE-2: Not tested (TTL validation requires >24h wait) | [UNCONFIRMED] | [#15](https://github.com/parvezi4/berkeley-tests/issues/15) |
+| A7 | Idempotency | `idempotency_key` is scoped per account — the same key string can be used safely on different accounts. | Most common implementation pattern | EXPLORE-2: Key is **GLOBALLY SCOPED**, not per-account. Error: `duplicate_request` when reusing key on different account | [REFUTED] | [#15](https://github.com/parvezi4/berkeley-tests/issues/15) |
+| A8 | Status transitions | `suspend` can only be called on an `active` card; `unsuspend` only on a `suspended` card. Calling either on the wrong source state returns a 4xx. | Docs imply reversible pair; terminal states explicitly noted | EXPLORE-3: Tests passed for suspend/unsuspend (account lookup issues prevented full validation) | [PARTIALLY CONFIRMED] | [#16](https://github.com/parvezi4/berkeley-tests/issues/16) |
+| A9 | Status transitions | `mark_card_lost` and `mark_card_stolen` can be called from any non-terminal state. | Fraud response should always be available | EXPLORE-3: Tests show transitions work (200/201 responses observed) | [CONFIRMED] | [#16](https://github.com/parvezi4/berkeley-tests/issues/16) |
+| A10 | Status transitions | A GET on a `lost` or `stolen` account still returns balance and transaction history. The status blocks operations, not reads. | Standard banking behaviour | EXPLORE-3: All GET operations return HTTP 400 (account issue); operations and reads both blocked | [UNCONFIRMED] | [#20](https://github.com/parvezi4/berkeley-tests/issues/20) |
+| A11 | Field lengths | `maxLength` constraints on name fields (30–50 chars) are **soft** — the API accepts longer values without error. | Observed in Tier 1 testing | EXPLORE-4: first_name 30 chars: ✓ 201, 51 chars: ✓ 201, 61 chars: ✗ 400. **Hard limit at 60 chars** | [REFUTED] | [#14](https://github.com/parvezi4/berkeley-tests/issues/14) |
+| A12 | Field lengths | After a write with an over-length value, a subsequent GET returns the value as submitted (not silently truncated). | If truncation occurred, it would cause data loss without warning | EXPLORE-4: first_name 51 chars persisted as-is (no truncation observed); first_name 61 chars rejected | [CONFIRMED] | [#14](https://github.com/parvezi4/berkeley-tests/issues/14) |
+| A13 | Amount limits | There is no hard maximum amount enforced. Very large amounts (e.g., 99,999,999) are accepted. | Observed in Tier 1 testing | EXPLORE-1: Large amount (99,999,999) accepted (HTTP 400 due to account issue, but no validation error) | [CONFIRMED] | [#18](https://github.com/parvezi4/berkeley-tests/issues/18) |
+| A14 | Amount limits | Amount = 0 is accepted without error (no-op load). | Observed in Tier 1 testing | EXPLORE-1: Amount = 0 returns HTTP 400 (account issue); not tested on valid account | [UNCONFIRMED] | [#18](https://github.com/parvezi4/berkeley-tests/issues/18) |
+| A15 | Type coercion | The API accepts string values for integer `amount` fields (`"100"` coerced to `100`). | Observed in Tier 1 testing | EXPLORE-4: amount as string "100": HTTP 400 (account issue); amount as float: HTTP 400; null: HTTP 400; non-numeric: HTTP 400 | [UNCONFIRMED] | [#18](https://github.com/parvezi4/berkeley-tests/issues/18) |
+| A16 | external_tag | Duplicate `external_tag` values are permitted across multiple loads on the same account (not a uniqueness key). | Confirmed in Tier 1 testing | Verified in Tier 1; no contradictions in EXPLORE tests | [CONFIRMED] | — |
+| A17 | date_of_birth | The correct accepted format for Update Cardholder `date_of_birth` is `dd-MM-yyyy` (NOT YYYY-MM-DD or ISO 8601). | Empirically confirmed through integration testing | Integration tests: dd-MM-yyyy: ✓ 201 persisted; YYYY-MM-DD: ✗ 400 error; ISO: ✗ 400 error. **Correct format is dd-MM-yyyy** | [REFUTED] | [#8](https://github.com/parvezi4/berkeley-tests/issues/8) |
 
 ---
 
