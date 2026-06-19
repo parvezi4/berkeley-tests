@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { setTimeout as delay } from 'timers/promises';
 import { BerkeleyClient } from '../support/api/berkeley-client.js';
 import { newCardholder } from '../support/utils/test-data.js';
 
@@ -81,7 +80,7 @@ test.describe('Format Validation', () => {
     test('[negative] phone omitted returns 400', async ({ request }) => {
       const client = new BerkeleyClient(request);
       const body = newCardholder();
-      delete (body as Record<string, unknown>)['phone'];
+      delete (body as unknown as Record<string, unknown>)['phone'];
 
       const res = await client.createCardholder(body);
       // Phone is required for Canadian programs (program 137)
