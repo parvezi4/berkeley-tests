@@ -9,10 +9,11 @@ All test results are consolidated in `test-results/` organized by tool for consi
 ```
 test-results/
 ├── playwright/               (Playwright functional tests)
-│   ├── index.html           (HTML report - browser-viewable)
+│   ├── html/                (HTML report files)
+│   │   ├── index.html       (HTML report - browser-viewable)
+│   │   └── ... (internal Playwright report files)
 │   ├── results.json         (Complete test execution data)
-│   ├── junit.xml            (GitHub Test Results integration)
-│   └── ... (internal Playwright report files)
+│   └── junit.xml            (GitHub Test Results integration)
 │
 ├── newman/                  (Newman/Postman collection tests)
 │   ├── results.json         (Local execution results)
@@ -33,7 +34,8 @@ test-results/
 
 **HTML Report:**
 - **Format:** Interactive HTML dashboard
-- **Location:** `test-results/playwright/index.html`
+- **Location:** `test-results/playwright/html/index.html`
+- **View locally:** `npm run report` (opens in browser)
 - **Contains:** 
   - Test execution timeline
   - Pass/fail breakdown by test suite
@@ -98,7 +100,7 @@ GitHub's native **Test Results** tab displays:
 All reports are retained as downloadable artifacts in the `test-results` artifact bundle:
 
 **Playwright Reports (`test-results/playwright/`):**
-- `index.html` — Full interactive HTML report
+- `html/index.html` — Full interactive HTML report (browser-viewable)
 - `junit.xml` — Machine-readable results for GitHub Test Results tab
 - `results.json` — Complete execution data for CI/CD analysis
 

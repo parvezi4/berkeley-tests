@@ -10,7 +10,6 @@ node_modules/
 # Keep directory structure with .gitkeep, ignore artifacts
 /test-results/playwright/**/*.json
 /test-results/playwright/**/*.html
-/test-results/playwright/**/index.html
 /test-results/playwright/**/junit.xml
 /test-results/newman/**/*.json
 /test-results/newman/**/*.xml
