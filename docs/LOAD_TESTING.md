@@ -1,6 +1,48 @@
-# Load Testing Guide
+# Load Testing & Performance Guide
 
-Comprehensive load testing for the Berkeley Card Issuing API with rate-limit detection and beautiful reporting.
+Comprehensive load testing for the Berkeley Card Issuing API with rate-limit detection, performance baselines, and beautiful reporting.
+
+This document covers protocol-level load testing using **Artillery**, a lightweight HTTP load testing engine. These tests complement the functional Playwright tests by measuring system performance, throughput, and latency under load without consuming browser resources.
+
+> ⚠️ **Important:** Load tests are **local-only** and do **not** run in GitHub Actions CI. They are designed for developer machines and require explicit execution via npm scripts or the reporter script.
+
+## Why Artillery?
+
+Artillery provides several advantages for API load testing:
+
+- **Lightweight** — No browser overhead; tests run as pure HTTP requests
+- **Fast execution** — Thousands of requests per second on modest hardware
+- **Protocol-level** — Tests actual API performance, not browser rendering
+- **Scenario-based** — Compose realistic user flows combining multiple endpoints
+- **Low resource footprint** — Ideal for CI/CD pipelines and development machines
+
+## Prerequisites
+
+### Installation
+
+**Global installation (recommended for CLI use):**
+```bash
+npm install -g artillery
+```
+
+**Or as a dev dependency in this project:**
+```bash
+npm install --save-dev artillery
+```
+
+### Environment Setup
+
+Load tests require the same environment variables as functional tests:
+
+```bash
+# Copy from .env.example and fill in real values
+cp .env.example .env
+
+# Required:
+#   BP_API_KEY     - Your staging API key (or set as secret in CI)
+#   BASE_URL       - API endpoint (default: https://api.staging.pungle.co)
+#   PROGRAM_ID     - Program under test (default: 137)
+```
 
 ## Quick Start
 
@@ -125,6 +167,139 @@ Recommendations:
     - Distributing load across multiple time periods
 ```
 
+## Test Scenarios
+
+Each load test exercises a combination of realistic API scenarios with weighted traffic distribution:
+
+### 1. **Program Info & Balance** (20% traffic weight)
+
+**What it tests:**
+- Fetching program metadata (GET /programs/{id})
+- Retrieving program-level balance (GET /programs/{id}/balance)
+
+**Why it matters:**
+- Validates read-heavy baseline performance
+- Measures metadata API latency
+
+**Load characteristics:**
+- No state dependencies
+- Lightweight requests (~100 bytes)
+- High concurrency tolerance
+
+### 2. **Cardholder Lifecycle** (30% traffic weight)
+
+**What it tests:**
+- Creating a new cardholder (POST /cardholders)
+  - Exercises request body parsing, business logic, database writes
+- Retrieving cardholder details (GET /cardholders/{id})
+- Listing cardholders (GET /cardholders)
+
+**Why it matters:**
+- Write-heavy operation; measures database performance under load
+- Tests sequential dependencies (create → retrieve)
+- Validates response structure consistency
+
+**Load characteristics:**
+- Largest payloads (~500 bytes POST body)
+- Creates persistent state
+- Models real consumer onboarding workflow
+
+### 3. **Account Resolution & Balance** (20% traffic weight)
+
+**What it tests:**
+- Creating a cardholder (establishes a primary account)
+- Resolving account from processor reference (GET /accounts?processor_reference=...)
+- Fetching account details (GET /accounts/{id})
+- Reading account balance (GET /accounts/{id}/balance)
+
+**Why it matters:**
+- Tests the consumer integration pattern: create → resolve → query
+- Validates processor reference lookup performance
+- Measures balance read latency
+
+**Load characteristics:**
+- Mixed read/write pattern
+- Sequential state dependencies
+- Realistic consumer workflow
+
+### 4. **Value Load Operations** (30% traffic weight)
+
+**What it tests:**
+- Creating a cardholder + account setup
+- Resolving account from processor reference
+- Creating a value load (POST /value_loads/load)
+  - **Highest business criticality** — represents actual money movement
+- Retrieving load details (GET /value_loads/{id})
+- Listing loads (GET /value_loads?program_id=...)
+
+**Why it matters:**
+- Tests idempotency key handling
+- Measures write performance for financial transactions
+- Must succeed reliably under load
+
+**Load characteristics:**
+- Most complex flow (6 requests per user)
+- Highest financial risk
+- Includes idempotency validation
+
+### 5. **Negative Path — Auth Validation** (5% traffic weight)
+
+**What it tests:**
+- Invalid bearer token rejection (GET /programs/{id} with bad token)
+
+**Why it matters:**
+- Validates auth enforcement
+- Measures security boundaries
+- Should return 401/403 consistently
+
+### 6. **Negative Path — Resource Not Found** (5% traffic weight)
+
+**What it tests:**
+- Non-existent program lookup (GET /programs/999999999)
+- Non-existent cardholder lookup (GET /cardholders/999999999)
+
+**Why it matters:**
+- Validates error handling
+- Should return 4xx (not 5xx) for missing resources
+- Tests application stability under edge cases
+
+## Load Phases & Profiles
+
+### Default Load Profile (4+ minutes)
+
+The default load profile consists of four phases with specific purposes:
+
+| Phase | Duration | Rate | Ramp | Purpose |
+|-------|----------|------|------|---------|
+| **Warmup** | 30s | 2 req/s | — | Establish connections, verify connectivity |
+| **Ramp-up** | 60s | 5→15 req/s | Yes | Gradually increase load, detect bottlenecks |
+| **Sustained** | 120s | 15 req/s | — | **Main test phase** — measure stability at target load |
+| **Cool-down** | 30s | 15→2 req/s | Yes | Graceful shutdown, cleanup |
+
+**Total throughput:** ~1,350 requests across all phases
+
+### Customizing Load Phases
+
+To run a lighter load for development:
+
+```bash
+artillery run load-tests/artillery.yml \
+  --target https://api.staging.pungle.co \
+  --set phases.0.arrivalRate=1 \
+  --set phases.1.arrivalRate=2 \
+  --set phases.1.rampTo=5 \
+  --set phases.2.arrivalRate=5
+```
+
+To run a high-stress test:
+
+```bash
+artillery run load-tests/artillery.yml \
+  --target https://api.staging.pungle.co \
+  --set phases.2.duration=300 \
+  --set phases.2.arrivalRate=50
+```
+
 ## Reports
 
 Both JSON and HTML reports are generated automatically.
@@ -153,10 +328,55 @@ Both JSON and HTML reports are generated automatically.
 ## Interpreting Results
 
 ### Key Metrics
-- **Mean Latency:** Average response time (lower is better)
-- **p95/p99:** 95th and 99th percentile response times (tail latency)
-- **Success Rate:** Percentage of 2xx responses
-- **Rate Limit (429):** Count of too-many-requests errors
+
+#### Response Time Metrics
+- **min / max / mean / p95 / p99** — Distribution of request latency
+  - **p95** = 95th percentile (most requests are faster; 5% are slower)
+  - **p99** = 99th percentile (highest-latency 1% of requests)
+  - **Goal:** p95 < 500ms, p99 < 1000ms for API calls
+
+#### Throughput
+- **rps** — Requests per second successfully completed
+- **Goal:** Should match `arrivalRate` during sustained phase
+
+#### Errors
+- **2xx / 4xx / 5xx** — HTTP status code distribution
+  - 5xx errors indicate server issues; should be 0 under normal load
+  - 4xx errors expected for negative path tests
+  - Goal: 100% success rate for happy-path scenarios
+
+#### Concurrency
+- **codes.200 / 201 / etc.** — Count of each status code
+- **Count total** — Verify expected request volume was generated
+
+### Example Output
+
+```
+Summary report @ 13:45:23 UTC
+
+  Scenarios launched:  100
+  Scenarios completed: 100
+  Requests completed:  1,350
+  Mean response time:  245ms
+  Scenario duration:   4m 20s
+
+  50%ile (p50):  180ms
+  95%ile (p95):  450ms
+  99%ile (p99):  920ms
+
+  Codes:
+    200:  900
+    201:  300
+    400:    0
+    401:    50
+    5xx:    0
+```
+
+**Interpretation:**
+- ✅ All scenarios completed successfully
+- ✅ p95 < 500ms — acceptable latency
+- ✅ No 5xx errors — backend healthy
+- ✅ 401 count matches auth negative tests (5% weight = ~50 req)
 
 ### Health Indicators
 | Metric | Healthy | Warning | Critical |
@@ -227,13 +447,51 @@ config:
       name: "Ramp-up"
 ```
 
+## Monitoring & Observability
+
+### Real-time Metrics
+
+Artillery can stream metrics to StatsD/CloudWatch. Enable in `artillery.yml`:
+
+```yaml
+metrics:
+  plugins:
+    statsd:
+      host: localhost
+      port: 8125
+```
+
+Then visualize in Grafana, DataDog, or CloudWatch.
+
+### Local HTML Report
+
+```bash
+artillery run load-tests/artillery.yml --target https://api.staging.pungle.co -o report.json
+artillery report report.json
+open artillery-report.html
+```
+
+### Debugging Failed Requests
+
+Enable verbose output to see request/response details:
+
+```bash
+DEBUG=* artillery run load-tests/artillery.yml
+```
+
 ## Troubleshooting
 
 ### "BP_API_KEY not set"
+
+**Cause:** Environment variable not loaded.
+
 **Solution:** Set the environment variable
 ```bash
-export BP_API_KEY=your-key
+export BP_API_KEY=$(grep BP_API_KEY .env | cut -d= -f2)
+artillery run load-tests/artillery.yml --set apiKey=$BP_API_KEY
+
 # or add to .env file
+export BP_API_KEY=your-key
 ```
 
 ### HTML report not generated
@@ -247,16 +505,32 @@ export BP_API_KEY=your-key
 node load-tests/generate-html-report.js load-tests/results/report_*.json
 ```
 
-### All responses are 401 Unauthorized
-**Causes:**
-- BP_API_KEY not set
-- API key is invalid or expired
-- Authorization header not being sent
+### High 401/403 Error Rates
 
-**Solution:**
-1. Verify BP_API_KEY is correct
-2. Check that API key is active
-3. Ensure `.env` file is being loaded
+**Cause:** API key invalid or expired.
+
+**Fix:**
+1. Verify the key in `.env` matches what's in GitHub Secrets
+2. Generate a new staging key if necessary
+3. Reload the environment: `source .env`
+
+### Timeout Errors ("ECONNREFUSED")
+
+**Cause:** API endpoint unreachable.
+
+**Fix:**
+1. Verify `BASE_URL` in `.env`: `https://api.staging.pungle.co`
+2. Test connectivity: `curl -H "Authorization: Bearer $BP_API_KEY" https://api.staging.pungle.co/api/v1/card_issuing/programs/137`
+3. Check if staging is down or network restricted
+
+### Memory Usage Spikes
+
+**Cause:** Too many concurrent connections.
+
+**Workaround:**
+- Reduce `arrivalRate` in load phases
+- Reduce test duration
+- Increase `think` (pause) time between requests
 
 ### High 5xx error rates
 **Possible causes:**
@@ -283,34 +557,24 @@ These values vary by server capacity and API complexity.
 
 ## Best Practices
 
-1. **Test against realistic environments**
-   - Use staging, not production
-   - Similar data volume and complexity
-   - Similar concurrent users
+### ✅ Do:
+- Run tests against **staging only** — never production
+- **Coordinate with operations** before large load tests
+- **Warm up** the API first (use Warmup phase)
+- **Monitor backend** during tests (logs, metrics, error rates)
+- **Iterate gradually** — start light, increase load incrementally
+- **Save results** for historical trend analysis (`-o report.json`)
+- **Version your test config** — track changes to load profiles
+- **Start with quick test first** — validates connectivity before heavy load
+- **Use incremental test for capacity planning** — finds rate-limit threshold
+- **Document findings** — save reports for comparison and trend tracking
 
-2. **Start with quick test first**
-   - Validates connectivity before heavy load
-   - Identifies obvious issues early
-
-3. **Use incremental test for capacity planning**
-   - Finds your rate-limit threshold
-   - Informs load test duration
-   - Helps set realistic SLAs
-
-4. **Monitor server health during tests**
-   - Watch CPU, memory, database
-   - Check error logs
-   - Track response times
-
-5. **Run periodic tests**
-   - Before deployments
-   - After infrastructure changes
-   - Monthly for trend tracking
-
-6. **Document findings**
-   - Save reports for comparison
-   - Track performance over time
-   - Share with team for SLA discussions
+### ❌ Don't:
+- Run load tests against **production** without explicit approval
+- Ignore **idempotency keys** — risk double-charging in replay scenarios
+- Test without **valid credentials** (will inflate auth error rates)
+- Use **production database** directly as a target
+- Share **API keys** in logs or reports — use `***` masking
 
 ## Advanced Usage
 
