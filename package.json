@@ -17,6 +17,8 @@
     "test:load": "npx artillery run load-tests/artillery-quick.yml",
     "test:load:standard": "npx artillery run load-tests/artillery.yml",
     "test:load:incremental": "bash load-tests/incremental-test.sh",
+    "test:newman": "node postman/scripts/run-newman.js",
+    "test:newman:verbose": "node postman/scripts/run-newman.js --verbose",
     "report": "playwright show-report",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results",

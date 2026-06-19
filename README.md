@@ -55,8 +55,10 @@ npm test                              # full Playwright suite (Tier 1 + Integrat
 npm run test:smoke                    # @smoke-tagged fast subset
 npm run test:integration              # Integration & Verification layers only
 
-npm run newman                         # Postman collection tests
-npm run newman:local                  # Postman collection tests (verbose output)
+npm run test:newman                   # Postman collection tests (standard output)
+npm run test:newman:verbose           # Postman collection tests (verbose output)
+npm run newman                        # Alias for npm run test:newman
+npm run newman:local                  # Alias for npm run test:newman:verbose
 
 # 4. Load Tests (local only, requires provider sign-off)
 npm run test:load                     # Quick smoke test (30s, 2 req/s)
