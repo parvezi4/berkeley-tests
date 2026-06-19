@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test';
 import { BerkeleyClient } from '../support/api/berkeley-client.js';
 import { newCardholder } from '../support/utils/test-data.js';
 
+// Helper for transient error retries
+// eslint-disable-next-line no-undef
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * INTEGRATION: Format Validation
  *
@@ -27,7 +31,7 @@ test.describe('Format Validation', () => {
       );
       // Retry once if we hit a transient 500
       if (res.status() === 500) {
-        await new Promise((r) => setTimeout(r, 1000));
+        await delay(1000);
         res = await client.createCardholder(
           newCardholder({ date_of_birth: '15-06-1990' }),
         );

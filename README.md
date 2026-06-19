@@ -43,19 +43,28 @@ This repository accompanies a QA test strategy (see [`docs/`](docs/)) and a Post
 
 ```bash
 # 1. Install
-npm install
-npx playwright install --with-deps   # only needed once per machine
+npm install                           # installs Playwright, Newman, and all dependencies
+npx playwright install --with-deps    # only needed once per machine; installs browser binaries
 
 # 2. Configure
 cp .env.example .env
 #   edit .env and set BP_API_KEY to your staging key
 
-# 3. Run
-npm test                 # full Playwright suite
-npm run test:smoke       # @smoke-tagged fast subset
-npm run newman:local     # Postman collection tests (verbose)
-npm run newman           # Postman collection tests (standard)
-npm run report           # open the Playwright HTML report
+# 3. Run Tests
+npm test                              # full Playwright suite (Tier 1 + Integration)
+npm run test:smoke                    # @smoke-tagged fast subset
+npm run test:integration              # Integration & Verification layers only
+
+npm run newman                         # Postman collection tests
+npm run newman:local                  # Postman collection tests (verbose output)
+
+# 4. Load Tests (local only, requires provider sign-off)
+npm run test:load                     # Quick smoke test (30s, 2 req/s)
+npm run test:load:standard            # Full load test (4+ minutes, ramp to 15 req/s)
+npm run test:load:incremental         # Find rate-limit threshold (5-10 minutes)
+
+# 5. Reports
+npm run report                        # open Playwright HTML report
 ```
 
 ### Running locally
@@ -124,39 +133,11 @@ These catch regressions and API contract changes. Reports are generated and stor
 - Results need careful interpretation and capacity planning
 - Rate limiting is a feature, not a failure
 
-Run them on-demand via:
-```bash
-./load-tests/run-and-report.sh --quick       # 30s smoke test
-./load-tests/run-and-report.sh               # 4+ min full test
-./load-tests/incremental-test.sh             # Find rate-limit threshold
-```
-
-**Details:** See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md)
-
-## Load & Performance Testing
-
-Protocol-level load testing is available via **Artillery**, a lightweight HTTP engine that complements the functional Playwright tests. Load tests measure throughput, latency, and stability without browser overhead.
-
-**Quick start:**
-```bash
-# Quick smoke test (30 seconds, minimal load)
-./load-tests/run-and-report.sh --quick
-
-# Full load test (4+ minutes)
-./load-tests/run-and-report.sh
-
-# Find rate-limit threshold (incremental, 5-10 minutes)
-./load-tests/incremental-test.sh
-```
-
-**Key points:**
-- Load tests run **locally only** (not in CI) and must have **staging provider sign-off**
-- Three test modes: quick (smoke test), full (comprehensive), incremental (find limits)
-- Tests include realistic flows: cardholder creation, account resolution, value loads, negative paths
-- Reports: Beautiful HTML dashboards + JSON for CI/CD integration
-- Auto-detects rate limiting and shows when it kicked in
-
-See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide, metrics interpretation, and best practices.
+See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide:
+- Three test modes (quick, full, incremental)
+- Detailed scenario descriptions and load phases
+- Metrics interpretation and performance baselines
+- Troubleshooting and best practices
 
 ## Documentation
 
@@ -168,18 +149,7 @@ See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide, metri
   - Three test modes (quick, full, incremental)
   - Rate-limit detection and capacity planning
   - Interpreting results and performance baselines
-  
-- **[docs/TEST_REPORTING.md](docs/TEST_REPORTING.md)** — Test reporting & GitHub integration
-  - Playwright HTML/JUnit XML reports
-  - Newman/Postman test reports
-  - GitHub Test Results tab integration
-  - Consuming reports locally or programmatically
-
-- **[docs/CI_OPTIMIZATION.md](docs/CI_OPTIMIZATION.md)** — CI/CD pipeline optimization
-  - Caching strategies
-  - Job parallelization
-  - Performance baselines and monitoring
-  - Troubleshooting CI failures
+  - Best practices and troubleshooting
 
 ### Security & Best Practices
 - **[SECURITY.md](SECURITY.md)** — Credentials, scope, and compliance
