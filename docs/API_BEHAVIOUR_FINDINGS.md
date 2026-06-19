@@ -73,10 +73,9 @@ by the exploration suite or confirmed by Berkeley.
 
 ---
 
-## Section 3 — Open Exploration Tasks
+## Section 3 — Exploration Results (Archive)
 
-Each task maps to a test file in `tests/exploration/`. Results feed back into
-Section 2 to confirm or update assumptions.
+**Note:** Exploration tests were removed after their purpose was fulfilled. The findings from these diagnostic suites have been integrated into the Core and Integration test layers. This section documents the original exploration goals and results for reference.
 
 ### EXPLORE-1: Negative balance and amount boundary behaviour
 **Goal**: Determine what happens when unload amount ≥ available balance.
@@ -226,6 +225,6 @@ Section 2 to confirm or update assumptions.
 
 ---
 
-*Last updated: exploration in progress*
-*Related test files: `tests/exploration/`*
-*Related issues: #8 (date format), #9 (lenient validation), #14–#17 (blocking questions)*
+*Last updated: 2026-06-19 — exploration complete, findings integrated into Core and Integration tests*
+*Related test files: `tests/support/` (client), `tests/fixtures/` (fresh-account), `tests/integration/` (validation)*
+*Related issues: #8 (date format), #11–#12 (account state), #14–#16 (field length, idempotency, status), #18–#20 (blocking issues)*

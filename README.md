@@ -95,9 +95,10 @@ Both **Playwright** and **Newman/Postman** tests run automatically on:
 
 ## Test design
 
-- **Typed client.** `src/api/berkeley-client.ts` wraps Playwright's `request` context, attaches auth, builds URLs from the stable `card_issuing` path, and normalises the inconsistent `data` envelope. It never throws on non-2xx, so negative-path tests can assert on status codes.
-- **Re-runnable data.** `src/utils/test-data.ts` generates timestamped emails / tags / idempotency keys, so the suite can run repeatedly with no manual cleanup.
-- **Seeded fixture.** `seededAccount` chains *create cardholder → resolve account → read account*, mirroring a real consumer integration and giving dependent tests a ready account.
+- **Typed client.** [`tests/support/api/berkeley-client.ts`](tests/support/api/berkeley-client.ts) wraps Playwright's `request` context, attaches auth, builds URLs from the stable `card_issuing` path, and normalises the inconsistent `data` envelope. It never throws on non-2xx, so negative-path tests can assert on status codes.
+- **Re-runnable data.** [`tests/support/utils/test-data.ts`](tests/support/utils/test-data.ts) generates timestamped emails / tags / idempotency keys, so the suite can run repeatedly with no manual cleanup.
+- **Fresh account fixture.** [`tests/fixtures/fresh-account.ts`](tests/fixtures/fresh-account.ts) creates isolated test accounts with retry logic, essential for tests that modify account state (status changes, terminal states).
+- **Seeded fixture.** `seededAccount` (in [`tests/fixtures/api-fixtures.ts`](tests/fixtures/api-fixtures.ts)) chains *create cardholder → resolve account → read account*, mirroring a real consumer integration and giving dependent tests a ready account.
 - **Conditional endpoints** (status changes that depend on card state or program config) assert *no 5xx* and annotate the run rather than hard-failing on a precondition the staging program may not meet.
 
 ## CI & Testing Strategy

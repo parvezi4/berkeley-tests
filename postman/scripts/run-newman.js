@@ -3,7 +3,8 @@
 /**
  * Helper script to run Newman with environment variables from .env or CI environment
  *
- * Usage: node scripts/run-newman.js [--verbose]
+ * Usage: node postman/scripts/run-newman.js [--verbose]
+ *        npm run newman [-- extra-args]
  *
  * Loads configuration from:
  * - .env file (if present, for local development)
