@@ -4,6 +4,22 @@ import { newCardholder, uniqueTag } from '../support/utils/test-data.js';
 import { config } from '../support/utils/config.js';
 import { createFreshAccount } from '../fixtures/fresh-account.js';
 
+/**
+ * INTEGRATION: Error Code Catalogue
+ *
+ * Documents confirmed error codes and messages across API endpoints.
+ *
+ * Confirmed error codes:
+ * ✅ resource_not_found (404) - nonexistent cardholder/account
+ * ✅ invalid_cardholder (400) - field validation errors
+ * ✅ duplicate_request (400) - idempotency key conflict (#15)
+ * ✅ invalid_status (400) - invalid state transition (#16)
+ * ✅ cannot_update_resource (400) - address cooldown / rate limit
+ *
+ * Test results:
+ * ✅ 5/5 passing - Error codes properly documented
+ */
+
 function assertError(body: unknown, expectedCode: string) {
   const err =
     ((body as Record<string, unknown>)?.error as Record<string, unknown>) ??

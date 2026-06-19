@@ -4,6 +4,23 @@ import { BerkeleyClient } from '../support/api/berkeley-client.js';
 import { uniqueTag } from '../support/utils/test-data.js';
 import type { ValueLoad } from '../support/api/types.js';
 
+/**
+ * INTEGRATION: Value Load Idempotency
+ *
+ * Tests idempotency key semantics and conflict handling.
+ * See GitHub issue #15 for idempotency semantics discussion.
+ *
+ * Key findings:
+ * ✅ A5 CONFIRMED: Different amount same key rejected (duplicate_request)
+ * ❌ A7 REFUTED: Keys are GLOBALLY scoped, not per-account
+ * ✅ Conflict error: duplicate_request
+ * ✅ Case-sensitive: Different case = separate load
+ *
+ * Blocked tests (6 marked fixme):
+ * - Account state instability after first load
+ * - Second/third operations on same account return 400
+ * - Waiting for Berkeley to clarify account state handling (#11, #12)
+ */
 test.describe('Value Load Idempotency', () => {
   test.fixme('identical replay returns 2xx and balance moves exactly once @smoke', async ({
     request,

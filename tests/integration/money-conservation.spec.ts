@@ -4,6 +4,23 @@ import { BerkeleyClient } from '../support/api/berkeley-client.js';
 import { uniqueTag } from '../support/utils/test-data.js';
 import type { ValueLoad, AccountBalance } from '../support/api/types.js';
 
+/**
+ * INTEGRATION: Money Conservation
+ *
+ * Tests that balance changes match load/unload amounts and that calculations
+ * are consistent across endpoints. Validates financial accuracy.
+ *
+ * Key findings:
+ * ✅ Load creates with 201 response
+ * ⚠️ Balance delta mismatch: Load 500 → delta 5 (see GitHub #11, #12)
+ * ✅ Endpoints agree: /balance matches /accounts/{id}
+ * ✅ Load records echo exact amount sent
+ *
+ * Blocked tests (5 marked fixme):
+ * - Sequential loads fail with 400 (account state issue)
+ * - Balance delta calculations don't match expected amounts
+ * - Waiting for balance application clarification (#11)
+ */
 test.describe('Money Conservation', () => {
   test('a load increases available_balance @smoke', async ({ request }) => {
     // Load is created successfully, but balance delta calculation shows unexpected behavior

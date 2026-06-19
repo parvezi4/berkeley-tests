@@ -76,17 +76,12 @@ export default defineConfig({
       fullyParallel: false,
     },
     {
-      name: 'tier2',
-      testDir: './tests/tier2',
-      // Tier 2: core idempotency, conservation, format validation
-      // Run sequentially to avoid rate limiting on cardholder creation
-      fullyParallel: false,
-    },
-    {
-      name: 'tier3',
-      testDir: './tests/tier3',
-      // Tier 3: error codes, state transitions
-      // Run sequentially to avoid rate limiting on cardholder creation
+      name: 'integration',
+      testDir: './tests/integration',
+      // Integration tests: cross-domain validation of idempotency, conservation,
+      // format validation, error codes, and status transitions
+      // Run sequentially to avoid rate limiting on cardholder creation and
+      // account state instability issues (see GitHub #11, #12, #16)
       fullyParallel: false,
     },
   ],

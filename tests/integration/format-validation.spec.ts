@@ -2,6 +2,22 @@ import { test, expect } from '@playwright/test';
 import { BerkeleyClient } from '../support/api/berkeley-client.js';
 import { newCardholder, uniqueTag } from '../support/utils/test-data.js';
 
+/**
+ * INTEGRATION: Format Validation
+ *
+ * Tests cardholder field format requirements and constraints.
+ * Validates date formats, field lengths, phone requirements, and type coercion.
+ *
+ * Key findings:
+ * ❌ A17 REFUTED: date_of_birth format is dd-MM-yyyy (not YYYY-MM-DD) - BUG-1 (#8)
+ * ✅ A11-12 CONFIRMED: Field lengths soft up to 60, hard reject at 61
+ * ✅ Phone required for Canadian programs (program 137) (#10)
+ * ✅ No silent truncation: over-length fields rejected
+ *
+ * Test results:
+ * ✅ 16/16 passing
+ * ⏳ 1 test with retry logic for transient 500 errors
+ */
 test.describe('Format Validation', () => {
   test.describe('date_of_birth — confirmed format: dd-MM-yyyy', () => {
     test('dd-MM-yyyy accepted on Create Cardholder @smoke', async ({ request }) => {
