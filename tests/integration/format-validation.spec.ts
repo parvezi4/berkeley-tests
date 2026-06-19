@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { setTimeout as delay } from 'timers/promises';
 import { BerkeleyClient } from '../support/api/berkeley-client.js';
-import { newCardholder, uniqueTag } from '../support/utils/test-data.js';
+import { newCardholder } from '../support/utils/test-data.js';
 
 /**
  * INTEGRATION: Format Validation

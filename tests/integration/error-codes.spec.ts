@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { BerkeleyClient } from '../support/api/berkeley-client.js';
 import { newCardholder, uniqueTag } from '../support/utils/test-data.js';
-import { config } from '../support/utils/config.js';
 import { createFreshAccount } from '../fixtures/fresh-account.js';
 
 /**

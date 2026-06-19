@@ -112,16 +112,12 @@ test.describe('Status Transitions — verified state machine', () => {
     expect(res.status()).toBeLessThan(500);
   });
 
-  test.fixme('[negative] any status change on lost card returns 4xx (terminal)', async ({
-    request,
-  }) => {
+  test.fixme('[negative] any status change on lost card returns 4xx (terminal)', async () => {
     // Blocked: EXPLORE-3 re-run needed to confirm error code for terminal→any transition.
     // Once re-run confirms, remove fixme and assert the exact error code.
   });
 
-  test.fixme('[negative] GET balance on lost/stolen account — behaviour unconfirmed', async ({
-    request,
-  }) => {
+  test.fixme('[negative] GET balance on lost/stolen account — behaviour unconfirmed', async () => {
     // EXPLORE-3 re-run needed: does GET balance return 200 (reads allowed)
     // or 4xx (terminal blocks all operations including reads)?
   });

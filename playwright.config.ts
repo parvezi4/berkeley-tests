@@ -69,13 +69,6 @@ export default defineConfig({
       fullyParallel: false,
     },
     {
-      name: 'exploration',
-      testDir: './tests/exploration',
-      // Empirical exploration tests: diagnostic suite for API behaviour validation
-      // Run sequentially to avoid staging API overload with state-dependent tests
-      fullyParallel: false,
-    },
-    {
       name: 'integration',
       testDir: './tests/integration',
       // Integration tests: cross-domain validation of idempotency, conservation,
