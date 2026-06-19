@@ -17,8 +17,6 @@
     "test:load": "npx artillery run load-tests/artillery-quick.yml",
     "test:load:standard": "npx artillery run load-tests/artillery.yml",
     "test:load:incremental": "bash load-tests/incremental-test.sh",
-    "test:load:incremental-4": "npx artillery run load-tests/artillery-quick.yml --variables '{\"targetLoad\": 10}'",
-    "test:load:incremental-5": "npx artillery run load-tests/artillery-quick.yml --variables '{\"targetLoad\": 15}'",
     "report": "playwright show-report",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results",

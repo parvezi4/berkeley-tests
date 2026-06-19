@@ -17,11 +17,18 @@
   - Test exploration results from EXPLORE-1 through EXPLORE-4
   - OpenAPI specification discrepancies documented
 
+## Load Testing
+- **[`LOAD_TESTING.md`](./LOAD_TESTING.md)** — Comprehensive load testing guide and strategies
+  - Quick smoke test (30s, default)
+  - Full load test (4+ minutes)
+  - Incremental load test (5-10 minutes, finds rate-limit threshold)
+  - Report interpretation and best practices
+
 ## OpenAPI Specification
 - **`berkeley-card-issuing-openapi.yaml`** — API specification (see findings for discrepancies between spec and actual API behavior)
 
 ---
 
 **Notes:**
-- Tests are organized in `/tests` by resource domain: `programs/`, `cardholders/`, `accounts/`, `value-loads/`, `exploration/`, `integration/`
+- Tests are organized in `/tests` by resource domain: `programs/`, `cardholders/`, `accounts/`, `value-loads/`, `integration/`
 - See [FINAL_EXECUTION_REPORT.md](./FINAL_EXECUTION_REPORT.md) for next steps and questions for Berkeley team
