@@ -22,8 +22,8 @@
     "lint": "eslint . --ext .ts --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results",
     "lint:fix": "eslint . --ext .ts --fix --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results",
     "check": "npm run typecheck && npm run lint && npm test",
-    "newman": "node scripts/run-newman.js",
-    "newman:local": "node scripts/run-newman.js --verbose"
+    "newman": "node postman/scripts/run-newman.js",
+    "newman:local": "node postman/scripts/run-newman.js --verbose"
   },
   "keywords": [
     "playwright",

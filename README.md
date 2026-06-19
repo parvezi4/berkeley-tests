@@ -25,12 +25,16 @@ This repository accompanies a QA test strategy (see [`docs/`](docs/)) and a Post
 │   ├── artillery-quick.yml # Smoke test (30s, 2 req/s)
 │   ├── run-and-report.sh   # Test runner with HTML report generation
 │   └── incremental-test.sh # Find rate-limit threshold
-├── postman/            # Importable collection + environment
-├── docs/               # Testing guides and QA strategy
+├── postman/            # Postman collection + environment + Newman runner
+│   ├── scripts/
+│   │   └── run-newman.js   # Newman test runner for Postman collection
+│   └── Berkeley-testing.postman_collection.json
+├── docs/               # Testing guides, QA strategy, and API reference
 │   ├── LOAD_TESTING.md # Complete load testing guide
-│   ├── TEST_REPORTING.md # Report formats and GitHub integration
-│   ├── CI_OPTIMIZATION.md # Pipeline performance and caching
-│   └── *.docx, *.pptx  # Strategy documents
+│   ├── API_BEHAVIOUR_FINDINGS.md # Confirmed behaviors vs. docs discrepancies
+│   ├── FINAL_EXECUTION_REPORT.md # Test execution results and findings
+│   ├── berkeley-card-issuing-openapi.yaml # API specification (AI-generated)
+│   └── *.docx, *.pptx  # QA strategy documents
 ├── SECURITY.md         # Credentials and compliance
 └── .github/workflows/  # CI: type-check + tests on push/PR + nightly
 ```
