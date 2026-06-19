@@ -65,3 +65,12 @@ npm run newman -- --reporters json --export results.json  # Save JSON report
 ```
 
 For full Newman documentation, see [postman/newman](https://learning.postman.com/docs/collections/using-newman-cli/command-line-with-newman/).
+
+## Test Results
+
+Newman test results are saved to `newman-results/`:
+- **Location:** `newman-results/newman-results.json` (or `.xml` depending on reporter)
+- **Gitignore:** Result files are gitignored to avoid committing large test artifacts
+- **Directory:** Preserved with `.gitkeep` to ensure the directory exists after cloning
+
+Results are local-only and safe to delete between test runs.
