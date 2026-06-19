@@ -7,25 +7,23 @@ All test results are consolidated in `test-results/` organized by tool for consi
 ## Report Structure
 
 ```
-test-results/
-├── playwright/               (Playwright functional tests)
-│   ├── html/                (HTML report files)
-│   │   ├── index.html       (HTML report - browser-viewable)
-│   │   └── ... (internal Playwright report files)
-│   ├── results.json         (Complete test execution data)
-│   └── junit.xml            (GitHub Test Results integration)
-│
-├── newman/                  (Newman/Postman collection tests)
-│   ├── results.json         (Local execution results)
-│   └── results.xml          (CI execution for GitHub integration)
-│
-└── artillery/               (Artillery load tests)
-    ├── quick_TIMESTAMP.json    (Quick smoke test data)
-    ├── quick_TIMESTAMP.html    (Quick test report)
-    ├── standard_TIMESTAMP.json (Full load test data)
-    ├── standard_TIMESTAMP.html (Full test report)
-    ├── incremental_*.json      (Rate-limit discovery)
-    └── incremental_*.html      (Rate-limit report)
+test-results/                   (Machine-readable results for CI/CD)
+├── playwright/
+│   ├── results.json            (Complete test execution data)
+│   └── junit.xml               (GitHub Test Results integration)
+├── newman/
+│   ├── results.json            (Local execution)
+│   └── results.xml             (CI integration)
+└── artillery/
+    ├── quick_TIMESTAMP.json/.html
+    ├── standard_TIMESTAMP.json/.html
+    └── incremental_TIMESTAMP.json/.html
+
+reports/                        (Browser-viewable HTML reports)
+└── playwright/
+    └── html/
+        ├── index.html          (Interactive test dashboard)
+        └── ... (supporting files)
 ```
 
 ## Report Types Generated
@@ -34,7 +32,7 @@ test-results/
 
 **HTML Report:**
 - **Format:** Interactive HTML dashboard
-- **Location:** `test-results/playwright/html/index.html`
+- **Location:** `reports/playwright/html/index.html`
 - **View locally:** `npm run report` (opens in browser)
 - **Contains:** 
   - Test execution timeline
@@ -42,6 +40,7 @@ test-results/
   - Detailed error traces and screenshots (if applicable)
   - Request/response details for failed tests
   - Performance metrics per test
+- **Note:** Stored separately in `reports/` directory to avoid Playwright output folder conflicts
 
 **JUnit XML Report:**
 - **Format:** Machine-readable XML (industry standard)
@@ -97,20 +96,22 @@ GitHub's native **Test Results** tab displays:
 
 ### Artifacts Tab
 
-All reports are retained as downloadable artifacts in the `test-results` artifact bundle:
+Reports are retained as downloadable artifacts in two bundles:
 
-**Playwright Reports (`test-results/playwright/`):**
-- `html/index.html` — Full interactive HTML report (browser-viewable)
-- `junit.xml` — Machine-readable results for GitHub Test Results tab
-- `results.json` — Complete execution data for CI/CD analysis
+**Test Results Bundle (`test-results/`)** — Machine-readable results for CI/CD:
+- **Playwright** (`test-results/playwright/`):
+  - `junit.xml` — Machine-readable results for GitHub Test Results tab
+  - `results.json` — Complete execution data for CI/CD analysis
+- **Newman** (`test-results/newman/`):
+  - `results.json` — Local execution results
+  - `results.xml` — CI execution results for GitHub integration
+- **Artillery** (`test-results/artillery/`):
+  - `{quick|standard|incremental}_TIMESTAMP.json` — Test metrics and performance data
 
-**Newman Reports (`test-results/newman/`):**
-- `results.json` — Local execution results
-- `results.xml` — CI execution results for GitHub integration
-
-**Artillery Load Test Reports (`test-results/artillery/`):**
-- `{quick|standard|incremental}_TIMESTAMP.json` — Test metrics and performance data
-- `{quick|standard|incremental}_TIMESTAMP.html` — Visual dashboard with charts
+**Reports Bundle (`reports/`)** — Browser-viewable HTML reports:
+- **Playwright** (`reports/playwright/html/`):
+  - `index.html` — Full interactive test dashboard
+  - Supporting files for visualization
 
 **Retention:** 30 days
 

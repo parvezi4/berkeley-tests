@@ -108,12 +108,21 @@ jobs:
           BP_API_KEY: ${{ secrets.BP_API_KEY }}
         timeout-minutes: 20
 
-      - name: Upload Playwright artifacts
+      - name: Upload Playwright test results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-results-playwright
           path: test-results/playwright/
+          retention-days: 30
+          compression-level: 6
+
+      - name: Upload Playwright HTML reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-playwright
+          path: reports/playwright/
           retention-days: 30
           compression-level: 6
 

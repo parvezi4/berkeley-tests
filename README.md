@@ -160,24 +160,29 @@ See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide:
 
 ## Test Results
 
-All test reports are consolidated in `test-results/` organized by testing tool:
+Test reports are organized in two locations:
 
+**Machine-readable results** (`test-results/`) — for CI/CD and programmatic analysis:
 ```
 test-results/
-├── playwright/           Playwright functional test results
-│   ├── index.html       (HTML report - browser-viewable)
-│   ├── junit.xml        (GitHub Test Results integration)
-│   └── results.json     (Complete execution data)
-├── newman/              Newman/Postman collection test results
-│   ├── results.json     (Local execution)
-│   └── results.xml      (CI integration)
-└── artillery/           Artillery load test results
-    ├── quick_TIMESTAMP.json/.html
-    ├── standard_TIMESTAMP.json/.html
-    └── incremental_TIMESTAMP.json/.html
+├── playwright/           Playwright test results (JSON, JUnit XML)
+├── newman/               Newman/Postman test results (JSON, XML)
+└── artillery/            Artillery load test results (JSON)
+```
+
+**Browser-viewable reports** (`reports/`) — for manual inspection:
+```
+reports/
+└── playwright/
+    └── html/             Interactive Playwright test dashboard
 ```
 
 **Important:** Test result files are gitignored to avoid committing large artifacts. The `.gitkeep` files preserve directory structure after cloning.
+
+**View HTML reports:**
+```bash
+npm run report      # Opens Playwright HTML dashboard in browser
+```
 
 See [`docs/TEST_REPORTING.md`](docs/TEST_REPORTING.md) for detailed information on:
 - Report types and formats

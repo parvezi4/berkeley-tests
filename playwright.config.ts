@@ -24,7 +24,9 @@ export default defineConfig({
   workers: process.env.WORKERS ? (process.env.WORKERS === 'auto' ? undefined : parseInt(process.env.WORKERS)) : 1,
   reporter: [
     ['list'],
-    ['html', { open: 'never', outputFolder: 'test-results/playwright/html' }],
+    // HTML reporter in separate reports/ directory to avoid Playwright output folder clash
+    ['html', { open: 'never', outputFolder: 'reports/playwright/html' }],
+    // Machine-readable results in test-results/ for CI/CD and analysis
     ['json', { outputFile: 'test-results/playwright/results.json' }],
     ['junit', { outputFile: 'test-results/playwright/junit.xml' }],
   ],
