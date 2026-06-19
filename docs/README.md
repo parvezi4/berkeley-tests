@@ -24,6 +24,19 @@
   - Incremental load test (5-10 minutes, finds rate-limit threshold)
   - Report interpretation and best practices
 
+## CI & Testing Infrastructure
+- **[`TEST_REPORTING.md`](./TEST_REPORTING.md)** — Test reporting and GitHub integration
+  - Playwright HTML/JUnit XML reports
+  - Newman/Postman test reports
+  - GitHub Test Results tab integration
+  - Consuming reports locally or programmatically
+
+- **[`CI_OPTIMIZATION.md`](./CI_OPTIMIZATION.md)** — CI/CD pipeline optimization
+  - Dependency and browser caching strategies
+  - Job parallelization
+  - Performance baselines and monitoring
+  - Troubleshooting CI failures
+
 ## OpenAPI Specification
 - **`berkeley-card-issuing-openapi.yaml`** — API specification for reference and testing
 
