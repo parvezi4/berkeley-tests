@@ -186,6 +186,13 @@ See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide, metri
 - **[docs/](docs/)** — Test strategy documentation
   - `Berkeley_QA_Test_Strategy.docx` — Full QA philosophy and approach
   - `Berkeley_QA_Strategy_Deck.pptx` — Presentation with speaker notes
+  - **[docs/API_BEHAVIOUR_FINDINGS.md](docs/API_BEHAVIOUR_FINDINGS.md)** — Confirmed API behaviors vs. documentation
+  - **[docs/FINAL_EXECUTION_REPORT.md](docs/FINAL_EXECUTION_REPORT.md)** — Test execution results and findings
+
+### API Specification
+- **[docs/berkeley-card-issuing-openapi.yaml](docs/berkeley-card-issuing-openapi.yaml)** — OpenAPI specification
+  
+  > ⚠️ **Disclaimer:** This OpenAPI document was **generated from the official Berkeley Payments API documentation by Claude.ai** and is **not** an official deliverable from the Berkeley engineering team. It is provided for reference and testing purposes. Refer to the official API documentation for authoritative specifications.
 
 ### Postman Collection
 - **[postman/README.md](postman/README.md)** — Importable collection and environment

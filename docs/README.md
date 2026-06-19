@@ -25,7 +25,11 @@
   - Report interpretation and best practices
 
 ## OpenAPI Specification
-- **`berkeley-card-issuing-openapi.yaml`** — API specification (see findings for discrepancies between spec and actual API behavior)
+- **`berkeley-card-issuing-openapi.yaml`** — API specification for reference and testing
+
+> ⚠️ **Disclaimer:** This OpenAPI document was **generated from the official Berkeley Payments API documentation by Claude.ai** and is **not** an official deliverable from the Berkeley engineering team. It is provided as a reference document for testing and integration purposes. For authoritative API specifications, refer to the official Berkeley Payments documentation.
+
+See [API_BEHAVIOUR_FINDINGS.md](./API_BEHAVIOUR_FINDINGS.md) for documented discrepancies between this spec and actual API behavior.
 
 ---
 
