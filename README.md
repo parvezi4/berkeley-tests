@@ -25,12 +25,16 @@ This repository accompanies a QA test strategy (see [`docs/`](docs/)) and a Post
 │   ├── artillery-quick.yml # Smoke test (30s, 2 req/s)
 │   ├── run-and-report.sh   # Test runner with HTML report generation
 │   └── incremental-test.sh # Find rate-limit threshold
-├── postman/            # Importable collection + environment
-├── docs/               # Testing guides and QA strategy
+├── postman/            # Postman collection + environment + Newman runner
+│   ├── scripts/
+│   │   └── run-newman.js   # Newman test runner for Postman collection
+│   └── Berkeley-testing.postman_collection.json
+├── docs/               # Testing guides, QA strategy, and API reference
 │   ├── LOAD_TESTING.md # Complete load testing guide
-│   ├── TEST_REPORTING.md # Report formats and GitHub integration
-│   ├── CI_OPTIMIZATION.md # Pipeline performance and caching
-│   └── *.docx, *.pptx  # Strategy documents
+│   ├── API_BEHAVIOUR_FINDINGS.md # Confirmed behaviors vs. docs discrepancies
+│   ├── FINAL_EXECUTION_REPORT.md # Test execution results and findings
+│   ├── berkeley-card-issuing-openapi.yaml # API specification (AI-generated)
+│   └── *.docx, *.pptx  # QA strategy documents
 ├── SECURITY.md         # Credentials and compliance
 └── .github/workflows/  # CI: type-check + tests on push/PR + nightly
 ```
@@ -39,19 +43,30 @@ This repository accompanies a QA test strategy (see [`docs/`](docs/)) and a Post
 
 ```bash
 # 1. Install
-npm install
-npx playwright install --with-deps   # only needed once per machine
+npm install                           # installs Playwright, Newman, and all dependencies
+npx playwright install --with-deps    # only needed once per machine; installs browser binaries
 
 # 2. Configure
 cp .env.example .env
 #   edit .env and set BP_API_KEY to your staging key
 
-# 3. Run
-npm test                 # full Playwright suite
-npm run test:smoke       # @smoke-tagged fast subset
-npm run newman:local     # Postman collection tests (verbose)
-npm run newman           # Postman collection tests (standard)
-npm run report           # open the Playwright HTML report
+# 3. Run Tests
+npm test                              # full Playwright suite (Tier 1 + Integration)
+npm run test:smoke                    # @smoke-tagged fast subset
+npm run test:integration              # Integration & Verification layers only
+
+npm run test:newman                   # Postman collection tests (standard output)
+npm run test:newman:verbose           # Postman collection tests (verbose output)
+npm run newman                        # Alias for npm run test:newman
+npm run newman:local                  # Alias for npm run test:newman:verbose
+
+# 4. Load Tests (local only, requires provider sign-off)
+npm run test:load                     # Quick smoke test (30s, 2 req/s)
+npm run test:load:standard            # Full load test (4+ minutes, ramp to 15 req/s)
+npm run test:load:incremental         # Find rate-limit threshold (5-10 minutes)
+
+# 5. Reports
+npm run report                        # open Playwright HTML report
 ```
 
 ### Running locally
@@ -63,6 +78,23 @@ export BP_API_KEY=your-staging-key
 npm test           # Run Playwright tests
 npm run newman     # Run Newman/Postman tests
 ```
+
+### Parallel test execution (advanced)
+
+Tests run with **1 worker by default** to prevent rate limiting on the staging API. To speed up local testing, you can override this:
+
+```bash
+# Run with 4 workers (faster, but higher API load)
+WORKERS=4 npm test
+
+# Auto-detect CPU count
+WORKERS=auto npm test
+
+# Back to single worker (stable, rate-limit friendly)
+npm test
+```
+
+**⚠️ Note:** Multiple workers increase API load and may trigger rate limiting. Use with caution on staging.
 
 ### GitHub Actions setup
 
@@ -91,9 +123,10 @@ Both **Playwright** and **Newman/Postman** tests run automatically on:
 
 ## Test design
 
-- **Typed client.** `src/api/berkeley-client.ts` wraps Playwright's `request` context, attaches auth, builds URLs from the stable `card_issuing` path, and normalises the inconsistent `data` envelope. It never throws on non-2xx, so negative-path tests can assert on status codes.
-- **Re-runnable data.** `src/utils/test-data.ts` generates timestamped emails / tags / idempotency keys, so the suite can run repeatedly with no manual cleanup.
-- **Seeded fixture.** `seededAccount` chains *create cardholder → resolve account → read account*, mirroring a real consumer integration and giving dependent tests a ready account.
+- **Typed client.** [`tests/support/api/berkeley-client.ts`](tests/support/api/berkeley-client.ts) wraps Playwright's `request` context, attaches auth, builds URLs from the stable `card_issuing` path, and normalises the inconsistent `data` envelope. It never throws on non-2xx, so negative-path tests can assert on status codes.
+- **Re-runnable data.** [`tests/support/utils/test-data.ts`](tests/support/utils/test-data.ts) generates timestamped emails / tags / idempotency keys, so the suite can run repeatedly with no manual cleanup.
+- **Fresh account fixture.** [`tests/fixtures/fresh-account.ts`](tests/fixtures/fresh-account.ts) creates isolated test accounts with retry logic, essential for tests that modify account state (status changes, terminal states).
+- **Seeded fixture.** `seededAccount` (in [`tests/fixtures/api-fixtures.ts`](tests/fixtures/api-fixtures.ts)) chains *create cardholder → resolve account → read account*, mirroring a real consumer integration and giving dependent tests a ready account.
 - **Conditional endpoints** (status changes that depend on card state or program config) assert *no 5xx* and annotate the run rather than hard-failing on a precondition the staging program may not meet.
 
 ## CI & Testing Strategy
@@ -119,39 +152,43 @@ These catch regressions and API contract changes. Reports are generated and stor
 - Results need careful interpretation and capacity planning
 - Rate limiting is a feature, not a failure
 
-Run them on-demand via:
-```bash
-./load-tests/run-and-report.sh --quick       # 30s smoke test
-./load-tests/run-and-report.sh               # 4+ min full test
-./load-tests/incremental-test.sh             # Find rate-limit threshold
+See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide:
+- Three test modes (quick, full, incremental)
+- Detailed scenario descriptions and load phases
+- Metrics interpretation and performance baselines
+- Troubleshooting and best practices
+
+## Test Results
+
+Test reports are organized in two locations:
+
+**Machine-readable results** (`test-results/`) — for CI/CD and programmatic analysis:
+```
+test-results/
+├── playwright/           Playwright test results (JSON, JUnit XML)
+├── newman/               Newman/Postman test results (JSON, XML)
+└── artillery/            Artillery load test results (JSON)
 ```
 
-**Details:** See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md)
-
-## Load & Performance Testing
-
-Protocol-level load testing is available via **Artillery**, a lightweight HTTP engine that complements the functional Playwright tests. Load tests measure throughput, latency, and stability without browser overhead.
-
-**Quick start:**
-```bash
-# Quick smoke test (30 seconds, minimal load)
-./load-tests/run-and-report.sh --quick
-
-# Full load test (4+ minutes)
-./load-tests/run-and-report.sh
-
-# Find rate-limit threshold (incremental, 5-10 minutes)
-./load-tests/incremental-test.sh
+**Browser-viewable reports** (`reports/`) — for manual inspection:
+```
+reports/
+└── playwright/
+    └── html/             Interactive Playwright test dashboard
 ```
 
-**Key points:**
-- Load tests run **locally only** (not in CI) and must have **staging provider sign-off**
-- Three test modes: quick (smoke test), full (comprehensive), incremental (find limits)
-- Tests include realistic flows: cardholder creation, account resolution, value loads, negative paths
-- Reports: Beautiful HTML dashboards + JSON for CI/CD integration
-- Auto-detects rate limiting and shows when it kicked in
+**Important:** Test result files are gitignored to avoid committing large artifacts. The `.gitkeep` files preserve directory structure after cloning.
 
-See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide, metrics interpretation, and best practices.
+**View HTML reports:**
+```bash
+npm run report      # Opens Playwright HTML dashboard in browser
+```
+
+See [`docs/TEST_REPORTING.md`](docs/TEST_REPORTING.md) for detailed information on:
+- Report types and formats
+- How to consume reports locally or programmatically
+- GitHub Actions integration
+- CI/CD artifact retention
 
 ## Documentation
 
@@ -163,18 +200,7 @@ See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide, metri
   - Three test modes (quick, full, incremental)
   - Rate-limit detection and capacity planning
   - Interpreting results and performance baselines
-  
-- **[docs/TEST_REPORTING.md](docs/TEST_REPORTING.md)** — Test reporting & GitHub integration
-  - Playwright HTML/JUnit XML reports
-  - Newman/Postman test reports
-  - GitHub Test Results tab integration
-  - Consuming reports locally or programmatically
-
-- **[docs/CI_OPTIMIZATION.md](docs/CI_OPTIMIZATION.md)** — CI/CD pipeline optimization
-  - Caching strategies
-  - Job parallelization
-  - Performance baselines and monitoring
-  - Troubleshooting CI failures
+  - Best practices and troubleshooting
 
 ### Security & Best Practices
 - **[SECURITY.md](SECURITY.md)** — Credentials, scope, and compliance
@@ -186,6 +212,13 @@ See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide, metri
 - **[docs/](docs/)** — Test strategy documentation
   - `Berkeley_QA_Test_Strategy.docx` — Full QA philosophy and approach
   - `Berkeley_QA_Strategy_Deck.pptx` — Presentation with speaker notes
+  - **[docs/API_BEHAVIOUR_FINDINGS.md](docs/API_BEHAVIOUR_FINDINGS.md)** — Confirmed API behaviors vs. documentation
+  - **[docs/FINAL_EXECUTION_REPORT.md](docs/FINAL_EXECUTION_REPORT.md)** — Test execution results and findings
+
+### API Specification
+- **[docs/berkeley-card-issuing-openapi.yaml](docs/berkeley-card-issuing-openapi.yaml)** — OpenAPI specification
+  
+  > ⚠️ **Disclaimer:** This OpenAPI document was **generated from the official Berkeley Payments API documentation by Claude.ai** and is **not** an official deliverable from the Berkeley engineering team. It is provided for reference and testing purposes. Refer to the official API documentation for authoritative specifications.
 
 ### Postman Collection
 - **[postman/README.md](postman/README.md)** — Importable collection and environment

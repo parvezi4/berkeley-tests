@@ -16,15 +16,19 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // Retry once on CI to absorb transient network/provider blips; never locally.
   retries: process.env.CI ? 1 : 0,
-  // Single worker on CI to reduce staging API load and prevent test flakiness.
-  // Tests were failing with 500 errors when multiple workers hit the API simultaneously.
-  // Local development can use multiple workers (undefined = auto-detect CPU count).
-  workers: process.env.CI ? 1 : undefined,
+  // Single worker by default to prevent rate limiting and test flakiness.
+  // Tests fail with 500 errors when multiple workers hit the API simultaneously.
+  // Override with WORKERS environment variable for faster local execution:
+  //   WORKERS=4 npm test        (run with 4 workers)
+  //   WORKERS=auto npm test     (auto-detect CPU count)
+  workers: process.env.WORKERS ? (process.env.WORKERS === 'auto' ? undefined : parseInt(process.env.WORKERS)) : 1,
   reporter: [
     ['list'],
-    ['html', { open: 'never', outputFolder: 'playwright-report' }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['junit', { outputFile: 'test-results/junit.xml' }],
+    // HTML reporter in separate reports/ directory to avoid Playwright output folder clash
+    ['html', { open: 'never', outputFolder: 'reports/playwright/html' }],
+    // Machine-readable results in test-results/ for CI/CD and analysis
+    ['json', { outputFile: 'test-results/playwright/results.json' }],
+    ['junit', { outputFile: 'test-results/playwright/junit.xml' }],
   ],
   // Shared settings for all the requests we send.
   use: {
@@ -66,6 +70,15 @@ export default defineConfig({
       testDir: './tests/value-loads',
       // Run sequentially: tests depend on seededAccount fixture
       // Parallel fixture execution caused 500 errors on cardholder creation
+      fullyParallel: false,
+    },
+    {
+      name: 'integration',
+      testDir: './tests/integration',
+      // Integration tests: cross-domain validation of idempotency, conservation,
+      // format validation, error codes, and status transitions
+      // Run sequentially to avoid rate limiting on cardholder creation and
+      // account state instability issues (see GitHub #11, #12, #16)
       fullyParallel: false,
     },
   ],

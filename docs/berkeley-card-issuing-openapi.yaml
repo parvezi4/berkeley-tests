@@ -1,0 +1,1424 @@
+openapi: 3.1.0
+info:
+  title: Berkeley Payments — Card Issuing API
+  version: "1.0"
+  description: |
+    OpenAPI specification for the Berkeley Payments Card Issuing API.
+    Covers four resource groups: **Cardholders**, **Accounts & Cards**,
+    **Value Loads**, and **Programs**.
+
+    Base URL (staging): `https://api.staging.pungle.co`
+    Base URL (production): `https://api.pungle.io`
+
+    All endpoints require a **Bearer token** in the `Authorization` header.
+
+    **Required field policy**: where the official documentation is ambiguous or
+    inconsistent about whether a field is required, this spec conservatively marks
+    only the minimum set of fields that are *demonstrably* required — i.e. the
+    API has been observed to reject requests that omit them. Fields the docs list
+    as required but which the API accepts without are downgraded to optional with
+    a note. This avoids false negatives in validation and test tooling.
+
+servers:
+  - url: https://api.staging.pungle.co
+    description: Staging
+  - url: https://api.pungle.io
+    description: Production
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Cardholders
+    description: Create and manage cardholder accounts.
+  - name: Accounts and Cards
+    description: Account details, balances, transactions, authorizations, and card status management.
+  - name: Value Loads
+    description: Load and unload funds on cardholder accounts.
+  - name: Programs
+    description: Read program configuration and master funding account balance.
+
+paths:
+
+  # ──────────────────────────────────────────────────
+  # CARDHOLDERS
+  # ──────────────────────────────────────────────────
+
+  /api/v1/card_issuing/cardholders:
+    post:
+      tags: [Cardholders]
+      operationId: createCardholder
+      summary: Create Cardholder
+      description: |
+        Creates a new Cardholder account for instant issue, personalized, and
+        secondary cards. Also allows for an initial card load at time of creation.
+
+        Supports CIP/KYC verification for programs that require it.
+        A `value_load_result` field is returned alongside the cardholder data
+        indicating whether the initial load succeeded.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCardholderRequest'
+            example:
+              program_id: 137
+              first_name: John
+              last_name: Doe
+              email: user@fakedomain.com
+              phone: "1231231234"
+              date_of_birth: "01-01-1980"
+              address1: "123 Fake Street"
+              address2: "apartment 2"
+              city: Moonbase One
+              state: UT
+              postal_code: "84121"
+              country: "840"
+              external_tag: abc123
+              load_amount: 1000
+              shipping_method: "1"
+              locale: en_CA
+      responses:
+        "201":
+          description: Cardholder created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CreateCardholderResponse'
+              example:
+                data:
+                  id: 201074
+                  username: null
+                  company_id: "37"
+                  created_at: "2026-06-16T14:48:41Z"
+                  external_tag: abc123
+                  primary_processor_reference: "7000149315"
+                  bank_details:
+                    account_number: "000486807"
+                    institution_number: "621"
+                    transit_number: "16001"
+                  value_load_result:
+                    code: success
+                    message: ""
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+
+    get:
+      tags: [Cardholders]
+      operationId: listCardholders
+      summary: List Cardholders
+      description: List all Cardholders for the authenticated program.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+          description: Number of records to return.
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of records to skip.
+      responses:
+        "200":
+          description: List of cardholders.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/CardholderDetail'
+                  - $ref: '#/components/schemas/PaginatedCardholdersResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/card_issuing/cardholders/{cardholder_id}:
+    get:
+      tags: [Cardholders]
+      operationId: getCardholder
+      summary: Get Cardholder Details
+      description: |
+        Returns Cardholder details including personal information, account details,
+        and all cards associated with each account.
+      parameters:
+        - $ref: '#/components/parameters/cardholder_id'
+      responses:
+        "200":
+          description: Cardholder details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CardholderDetail'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Cardholders]
+      operationId: updateCardholder
+      summary: Update Cardholder
+      description: |
+        Updates the cardholder's personal information. Provide only the fields
+        that require modification.
+
+        **Known behaviour**: address fields are subject to a rate-limit cooldown.
+        Updating an address too soon after a previous address change returns
+        `cannot_update_resource`.
+
+        `emboss_line2` is not yet supported on update.
+      parameters:
+        - $ref: '#/components/parameters/cardholder_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCardholderRequest'
+            example:
+              first_name: Jane
+              last_name: Doe
+              email: jane.doe@example.com
+              phone: "6135550100"
+              shipping_method: "9"
+      responses:
+        "200":
+          description: Cardholder updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UpdateCardholderResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "422":
+          description: Unprocessable — includes the address cooldown error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error:
+                  code: cannot_update_resource
+                  message: "Cardholder address was updated recently. Please wait and try again at a later date."
+
+  # ──────────────────────────────────────────────────
+  # ACCOUNTS AND CARDS
+  # ──────────────────────────────────────────────────
+
+  /api/v1/card_issuing/accounts:
+    get:
+      tags: [Accounts and Cards]
+      operationId: getAccountByProcessorReference
+      summary: Get Account By Processor Reference
+      description: Gets an Account by its processor reference number (proxy number).
+      parameters:
+        - name: processor_reference
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The processor reference (proxy number) returned by Create Cardholder.
+          example: "7000149315"
+      responses:
+        "200":
+          description: Account record.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Account'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/card_issuing/accounts/activate_card:
+    post:
+      tags: [Accounts and Cards]
+      operationId: activateCard
+      summary: Activate Card
+      description: |
+        Activates a **physical** card associated with an existing Account.
+
+        Two activation methods:
+        1. Account ID + last four digits (+ optional expiry/CVV).
+        2. Full 16-digit card number + expiry.
+
+        **Note**: Does not work for virtual cards. To activate a virtual card,
+        use `modifyAccountStatus` with `mark_card_active`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateCardRequest'
+            example:
+              id: 12345
+              last_four_digits: 1234
+              expiry_month: 7
+              expiry_year: 2030
+              cvv: 123
+      responses:
+        "201":
+          description: Card activated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      last_four_digits:
+                        type: integer
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/card_issuing/accounts/{account_id}:
+    get:
+      tags: [Accounts and Cards]
+      operationId: getAccountDetails
+      summary: Get Account Details
+      description: |
+        Combined account dashboard. Returns general account information, cardholder
+        profile, posted transactions, pending authorizations, pending fees, and
+        optional savings interest data.
+
+        Possible `status_code` values: `active`, `not_active`, `suspended`,
+        `expired`, `canceled`, `lost` *(terminal)*, `stolen` *(terminal)*,
+        `shipping`, `delinquent`, `shipped`.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+        - name: include_value_loads
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Include current-day value loads with authorizations.
+      responses:
+        "200":
+          description: Full account details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AccountDetail'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Accounts and Cards]
+      operationId: modifyAccountStatus
+      summary: Modify Account Status
+      description: |
+        Modifies the status of an Account or Card.
+
+        **Action table**:
+        | Action | Description |
+        |---|---|
+        | `mark_card_active` | Activate the card |
+        | `mark_card_lost` | Mark as lost *(terminal)* |
+        | `mark_card_stolen` | Mark as stolen *(terminal)* |
+        | `initiate_card_lost` | Mark lost + trigger card replacement |
+        | `initiate_card_stolen` | Mark stolen + trigger card replacement |
+        | `suspend` | Suspend card (reversible) |
+        | `unsuspend` | Unsuspend card |
+
+        **Note**: `lost` and `stolen` are terminal statuses — a card in either
+        state cannot be changed to another status.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModifyAccountStatusRequest'
+            example:
+              status: suspend
+              last_four_digits: "1234"
+      responses:
+        "200":
+          description: Status modified.
+        "201":
+          description: Status modified.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/card_issuing/accounts/{account_id}/balance:
+    get:
+      tags: [Accounts and Cards]
+      operationId: getAccountBalance
+      summary: Get Account Balance
+      description: |
+        Returns the balance of the account.
+
+        Note: all balance fields are returned as **strings**.
+        `balance` is deprecated and always equals `available_balance`.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+      responses:
+        "200":
+          description: Account balance.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AccountBalance'
+              example:
+                data:
+                  settled_balance: "500.00"
+                  available_balance: "485.00"
+                  balance: "485.00"
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/card_issuing/accounts/{account_id}/authorizations:
+    get:
+      tags: [Accounts and Cards]
+      operationId: getAccountAuthorizations
+      summary: Get Account Authorizations
+      description: Gets a list of pending/authorized transactions for the account.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+        - name: include_value_loads
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Include current-day value loads alongside authorizations.
+      responses:
+        "200":
+          description: List of authorizations.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Authorization'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/card_issuing/accounts/{account_id}/transactions:
+    get:
+      tags: [Accounts and Cards]
+      operationId: getAccountTransactions
+      summary: Get Account Transactions
+      description: |
+        Gets paginated settled transactions for the account.
+
+        **Note**: For some program configurations the endpoint does not return a
+        total page count. In those cases an error with code `list_exhausted` is
+        returned to indicate the end of the list.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: start_date
+          in: query
+          schema:
+            type: string
+          description: "Filter start date. Format: dd-MM-yyyy"
+          example: "01-01-2020"
+        - name: end_date
+          in: query
+          schema:
+            type: string
+          description: "Filter end date. Format: dd-MM-yyyy"
+          example: "31-12-2030"
+      responses:
+        "200":
+          description: Paginated transactions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/card_issuing/accounts/{account_id}/card_order_status:
+    get:
+      tags: [Accounts and Cards]
+      operationId: getCardOrderStatus
+      summary: Get Card Order Status
+      description: Get the shipping/order status of a physical card. May be empty for virtual programs.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+      responses:
+        "200":
+          description: Card order status records.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CardOrderStatus'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/card_issuing/accounts/{account_id}/get_pin:
+    post:
+      tags: [Accounts and Cards]
+      operationId: retrievePin
+      summary: Retrieve PIN
+      description: |
+        Retrieve the PIN for a card on an account.
+
+        **Canadian programs only.** Expect a 4xx on non-Canadian programs.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [last_four_digits]
+              properties:
+                last_four_digits:
+                  type: string
+                  description: Last four digits of the card.
+            example:
+              last_four_digits: "1234"
+      responses:
+        "200":
+          description: PIN retrieved.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      pin:
+                        type: string
+                        description: Current PIN attached to the card.
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  # ──────────────────────────────────────────────────
+  # VALUE LOADS
+  # ──────────────────────────────────────────────────
+
+  /api/v1/card_issuing/value_loads/load:
+    post:
+      tags: [Value Loads]
+      operationId: createValueLoad
+      summary: Create Value Load
+      description: |
+        Loads funds onto a cardholder account from the program's master funding
+        account. Works only for active **reloadable** cards.
+
+        `amount` is in the smallest unit of the program's currency
+        (e.g. $10.00 CAD = 1000).
+
+        `idempotency_key` is recommended for all load requests to prevent
+        double-charging on retry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateValueLoadRequest'
+            example:
+              account_id: 12345
+              external_tag: vl-1718550000
+              amount: 1000
+              message: QA automated load
+              idempotency_key: idem-1718550000
+      responses:
+        "201":
+          description: Value load created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ValueLoad'
+              example:
+                data:
+                  id: 9001
+                  external_tag: vl-1718550000
+                  amount: 1000
+                  message: QA automated load
+                  account_id: 12345
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/card_issuing/value_loads/unload:
+    post:
+      tags: [Value Loads]
+      operationId: createValueUnload
+      summary: Create Value Unload
+      description: |
+        Unloads funds from a cardholder account back to the program's master
+        funding account. Works only for active **reloadable** cards.
+
+        **Must be enabled per program.** Expect a 4xx if not enabled on staging.
+
+        `idempotency_key` recommended to prevent double-unloading on retry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateValueLoadRequest'
+            example:
+              account_id: 12345
+              external_tag: vlu-1718550000
+              amount: 500
+              message: QA automated unload
+              idempotency_key: idemu-1718550000
+      responses:
+        "201":
+          description: Value unload created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ValueLoad'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/card_issuing/value_loads:
+    get:
+      tags: [Value Loads]
+      operationId: listValueLoads
+      summary: List Value Loads
+      description: Returns a paginated list of all value loads for the program.
+      parameters:
+        - name: program_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Filter by program. Defaults to the authenticated program if omitted.
+          example: 137
+        - name: external_tag
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by external tag.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Paginated value loads.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValueLoadListResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/card_issuing/value_loads/{value_load_id}:
+    get:
+      tags: [Value Loads]
+      operationId: getValueLoad
+      summary: Get Value Load Details
+      description: Get the details of a specific value load by ID.
+      parameters:
+        - name: value_load_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the value load.
+      responses:
+        "200":
+          description: Value load details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ValueLoadDetail'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  # ──────────────────────────────────────────────────
+  # PROGRAMS
+  # ──────────────────────────────────────────────────
+
+  /api/v1/card_issuing/programs/{program_id}:
+    get:
+      tags: [Programs]
+      operationId: getProgram
+      summary: Get Program
+      description: |
+        Returns program details: name, program type, status, currency, and
+        master funding account number.
+      parameters:
+        - $ref: '#/components/parameters/program_id'
+      responses:
+        "200":
+          description: Program details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Program'
+              example:
+                data:
+                  id: 137
+                  name: QA Staging Program
+                  program_type: prepaid
+                  status: active
+                  currency: CAD
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/card_issuing/programs/{program_id}/balance:
+    get:
+      tags: [Programs]
+      operationId: getProgramBalance
+      summary: Get Program Balance
+      description: Fetch the master funding account balance for the program.
+      parameters:
+        - $ref: '#/components/parameters/program_id'
+      responses:
+        "200":
+          description: Program funding balance.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AccountBalance'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+# ──────────────────────────────────────────────────
+# COMPONENTS
+# ──────────────────────────────────────────────────
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Private API key issued by Berkeley Payments. Set as the Bearer token.
+
+  parameters:
+    cardholder_id:
+      name: cardholder_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Numeric ID of the Cardholder.
+    account_id:
+      name: account_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Numeric ID of the Account.
+    program_id:
+      name: program_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Numeric ID of the Program.
+
+  responses:
+    BadRequest:
+      description: Bad request — invalid or missing parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Unauthorized:
+      description: Authentication failed — missing or invalid Bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    UnprocessableEntity:
+      description: Validation error or business-rule rejection.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+  schemas:
+
+    # ─ Error ─────────────────────────────────────────
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: cannot_update_resource
+            message:
+              type: string
+              example: "Cardholder address was updated recently. Please wait and try again at a later date."
+
+    # ─ Cardholders ───────────────────────────────────
+    CreateCardholderRequest:
+      type: object
+      required: [program_id, first_name, last_name, email, city, state, postal_code, country]
+      properties:
+        program_id:
+          type: integer
+          description: Program to create the initial account under.
+        first_name:
+          type: string
+          maxLength: 50
+        middle_name:
+          type: string
+          maxLength: 50
+        last_name:
+          type: string
+          maxLength: 50
+        emboss_line2:
+          type: string
+          description: Second line card emboss text. Not yet supported on update.
+        date_of_birth:
+          type: string
+          description: "Format: dd-MM-yyyy. Required for Canadian programs."
+          example: "01-01-1980"
+        address1:
+          type: string
+          maxLength: 40
+        address2:
+          type: string
+          maxLength: 30
+        city:
+          type: string
+          maxLength: 100
+        state:
+          type: string
+          description: Valid 2-character state/province abbreviation.
+          example: UT
+        postal_code:
+          type: string
+          example: "84121"
+        country:
+          type: string
+          description: Three-digit ISO numeric UN M49 country code. USA=840, Canada=124.
+          example: "840"
+        phone:
+          type: string
+          description: Required for Canadian programs (max 16 digits); optional for US (max 10 digits).
+        email:
+          type: string
+          format: email
+          maxLength: 50
+        sin:
+          type: string
+          description: |
+            SSN or SIN. Required for US programs that require KYC.
+            Optional for Canadian programs. Triggers KYC when provided.
+        external_tag:
+          type: string
+        load_amount:
+          type: integer
+          description: Initial load amount in smallest currency unit (e.g. $10.00 = 1000).
+        shipping_method:
+          type: string
+          description: |
+            US: 1=USPS First Class, 2=UPS Ground, 3=USPS Priority Intl, 4=BULK Ground.
+            Canada: 4=USPS Intl, 8=UPS Worldwide Saver, 9=UPS Standard.
+          example: "1"
+        locale:
+          type: string
+          enum: [en_US, en_CA, fr_CA]
+        subprogram_code:
+          type: string
+          description: "May be 'virtual' or 'physical'. Must be enabled per program."
+        package_code:
+          type: string
+          description: Card art and carrier code for physical cards.
+        parent_cardholder_id:
+          type: integer
+          nullable: true
+        linked_account_id:
+          type: integer
+          nullable: true
+        shipping_address:
+          $ref: '#/components/schemas/ShippingAddress'
+        kyc_additional_client_info:
+          $ref: '#/components/schemas/KycAdditionalClientInfo'
+
+    ShippingAddress:
+      type: object
+      required: [address1, city, state, postal_code, country]
+      properties:
+        address1:
+          type: string
+        address2:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postal_code:
+          type: string
+        country:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+
+    KycAdditionalClientInfo:
+      type: object
+      properties:
+        occupation:
+          type: string
+          maxLength: 50
+        third_party_determination:
+          type: boolean
+          nullable: true
+        foreign_tax_residency:
+          type: boolean
+          nullable: true
+          description: If true, sin field and foreign_tax_country_code are required.
+        foreign_tax_country_code:
+          type: string
+          description: Required if foreign_tax_residency is true.
+        foreign_tax_id:
+          type: string
+          description: Required if foreign_tax_residency is true.
+
+    CreateCardholderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Cardholder ID.
+        username:
+          type: string
+          nullable: true
+        company_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        external_tag:
+          type: string
+        primary_processor_reference:
+          type: string
+          description: Unique account reference at the processor (proxy number).
+        bank_details:
+          $ref: '#/components/schemas/BankDetails'
+        value_load_result:
+          $ref: '#/components/schemas/ValueLoadResult'
+
+    ValueLoadResult:
+      type: object
+      properties:
+        code:
+          type: string
+          description: "'success' if the initial load was applied."
+          example: success
+        message:
+          type: string
+
+    BankDetails:
+      type: object
+      description: Direct deposit bank account details (only present if enabled for the program).
+      properties:
+        transit_number:
+          type: string
+        institution_number:
+          type: string
+        account_number:
+          type: string
+
+    UpdateCardholderRequest:
+      type: object
+      description: All fields are optional. Only include fields to modify.
+      properties:
+        first_name:
+          type: string
+        middle_name:
+          type: string
+        last_name:
+          type: string
+        date_of_birth:
+          type: string
+          description: "Format: YYYY-MM-DD"
+          example: "1980-01-01"
+        address1:
+          type: string
+        address2:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postal_code:
+          type: string
+        country:
+          type: integer
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        sin:
+          type: string
+        shipping_method:
+          type: string
+
+    UpdateCardholderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        external_tag:
+          type: string
+        processor_reference:
+          type: string
+        program_id:
+          type: string
+        virtual_card:
+          type: string
+
+    CardholderDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        cardholder_id:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+
+    PaginatedCardholdersResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CardholderDetail'
+
+    # ─ Accounts and Cards ────────────────────────────
+    AccountStatusCode:
+      type: string
+      enum:
+        - active
+        - not_active
+        - suspended
+        - expired
+        - canceled
+        - cancelled
+        - lost
+        - stolen
+        - shipping
+        - delinquent
+        - shipped
+      description: |
+        Note: `lost` and `stolen` are **terminal** statuses.
+        A card in either state cannot be changed to another status.
+
+    Account:
+      type: object
+      properties:
+        id:
+          type: integer
+        cardholder_id:
+          type: integer
+        processor_reference:
+          type: string
+        status_code:
+          $ref: '#/components/schemas/AccountStatusCode'
+        balance:
+          type: string
+
+    Card:
+      type: object
+      properties:
+        last_four_digits:
+          type: string
+        status_code:
+          $ref: '#/components/schemas/AccountStatusCode'
+
+    AccountDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        program_id:
+          type: integer
+        cardholder_id:
+          type: integer
+        processor_reference:
+          type: string
+        status_code:
+          $ref: '#/components/schemas/AccountStatusCode'
+        balance:
+          type: integer
+          description: Balance on account.
+        cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/Card'
+        bank_details:
+          $ref: '#/components/schemas/BankDetails'
+        start_date:
+          type: string
+        end_date:
+          type: string
+        authorizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Authorization'
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AccountBalance:
+      type: object
+      properties:
+        settled_balance:
+          type: string
+          description: Balance not including pending transactions.
+        available_balance:
+          type: string
+          description: Amount available for purchases as reported by the processor.
+        balance:
+          type: string
+          description: Deprecated. Always equals available_balance.
+
+    ActivateCardRequest:
+      type: object
+      description: |
+        Provide either (id + last_four_digits) or (card_number + expiry).
+      properties:
+        id:
+          type: integer
+          description: Account ID (Sample 1).
+        last_four_digits:
+          type: integer
+          description: Card's last 4 digits (Sample 1).
+        expiry_month:
+          type: integer
+        expiry_year:
+          type: integer
+        cvv:
+          type: integer
+        card_number:
+          type: integer
+          description: Full 16-digit card number (Sample 2).
+
+    ModifyAccountStatusRequest:
+      type: object
+      required: [status, last_four_digits]
+      properties:
+        status:
+          type: string
+          enum:
+            - mark_card_active
+            - mark_card_lost
+            - mark_card_stolen
+            - initiate_card_lost
+            - initiate_card_stolen
+            - suspend
+            - unsuspend
+        last_four_digits:
+          type: string
+
+    Merchant:
+      type: object
+      properties:
+        mcc:
+          type: string
+          description: Merchant Category Code.
+        mcc_description:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+
+    Authorization:
+      type: object
+      properties:
+        billing_amount:
+          type: string
+        billing_currency:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+        auth_amount:
+          type: string
+        transaction_amount:
+          type: string
+        transaction_currency:
+          type: string
+        merchant:
+          $ref: '#/components/schemas/Merchant'
+        type:
+          type: string
+
+    Transaction:
+      type: object
+      properties:
+        amount:
+          type: string
+        billing_amount:
+          type: string
+        billing_currency:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+          description: Local datetime. Note the trailing 'z' is NOT UTC — it is local time.
+        transaction_amount:
+          type: string
+        transaction_currency:
+          type: string
+        merchant:
+          $ref: '#/components/schemas/Merchant'
+        type:
+          type: string
+
+    TransactionListResponse:
+      type: object
+      properties:
+        start_date:
+          type: string
+        end_date:
+          type: string
+        limit:
+          type: integer
+        page:
+          type: integer
+        page_count:
+          type: integer
+          description: May not be populated under some program configurations.
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+
+    CardOrderStatus:
+      type: object
+      properties:
+        activation_date:
+          type: string
+        order_shipping_method:
+          type: string
+        order_status:
+          type: string
+        order_tracking_number:
+          type: string
+        registration_date:
+          type: string
+        shipping_date:
+          type: string
+
+    # ─ Value Loads ───────────────────────────────────
+    CreateValueLoadRequest:
+      type: object
+      required: [account_id, amount]
+      properties:
+        account_id:
+          type: integer
+          description: ID of the account to load/unload.
+        amount:
+          type: integer
+          description: Amount in smallest currency unit (e.g. $10.00 = 1000).
+        external_tag:
+          type: string
+          description: User-defined external reference tag. Recommended but not enforced.
+        message:
+          type: string
+          description: Optional alphanumeric message.
+        idempotency_key:
+          type: string
+          description: Unique key to prevent duplicate processing on retry. Strongly recommended.
+        transaction_code:
+          type: string
+          description: |
+            Canadian programs only. Controls the transaction message.
+            Defaults to `value_load`. Options include: `value_load`,
+            `direct_deposit_load`, `biller_account_load`, `cashback`, etc.
+
+    ValueLoad:
+      type: object
+      properties:
+        id:
+          type: integer
+        external_tag:
+          type: string
+        amount:
+          type: integer
+        message:
+          type: string
+        account_id:
+          type: integer
+
+    ValueLoadDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        account_id:
+          type: integer
+        program_id:
+          type: integer
+        cardholder_id:
+          type: integer
+        external_tag:
+          type: string
+        amount:
+          type: integer
+        load_type:
+          type: string
+          enum: [load, unload]
+        message:
+          type: string
+        processor_reference:
+          type: string
+
+    ValueLoadListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValueLoadDetail'
+
+    # ─ Programs ──────────────────────────────────────
+    Program:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        program_type:
+          type: string
+        status:
+          type: string
+          example: active
+        currency:
+          type: string
+          example: CAD
