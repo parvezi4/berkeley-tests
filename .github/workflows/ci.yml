@@ -112,11 +112,8 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-artifacts
-          path: |
-            playwright-report/
-            test-results/junit.xml
-            test-results/results.json
+          name: test-results-playwright
+          path: test-results/playwright/
           retention-days: 30
           compression-level: 6
 
@@ -125,7 +122,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Playwright Test Results
-          path: test-results/junit.xml
+          path: test-results/playwright/junit.xml
           reporter: java-junit
           fail-on-error: false
 
@@ -177,7 +174,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Newman Test Results
-          path: newman-results/newman-results.xml
+          path: test-results/newman/results.xml
           reporter: java-junit
           fail-on-error: false
 
@@ -185,10 +182,8 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: newman-artifacts
-          path: |
-            newman-results/
-            load-tests/results/
+          name: test-results-newman
+          path: test-results/newman/
           retention-days: 30
           compression-level: 6
 

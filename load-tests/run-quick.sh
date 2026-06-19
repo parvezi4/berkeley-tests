@@ -15,23 +15,23 @@ if [ -z "$BP_API_KEY" ]; then
 fi
 
 # Create results directory
-mkdir -p load-tests/results
+mkdir -p test-results/artillery
 
 # Generate timestamp for report files
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-REPORT_FILE="load-tests/results/report_${TIMESTAMP}.json"
-HTML_REPORT="load-tests/results/report_${TIMESTAMP}.html"
+JSON_REPORT="test-results/artillery/quick_${TIMESTAMP}.json"
+HTML_REPORT="test-results/artillery/quick_${TIMESTAMP}.html"
 
 # Run quick load test with proper variables and save results
 npx artillery run load-tests/artillery-quick.yml \
   --target "${BASE_URL:-https://api.staging.pungle.co}" \
   --variables "{\"apiKey\":\"$BP_API_KEY\",\"programId\":\"${PROGRAM_ID:-137}\"}" \
-  --output "$REPORT_FILE" 2>/dev/null || true
+  --output "$JSON_REPORT" 2>/dev/null || true
 
 # Generate HTML report from JSON
-if [ -f "$REPORT_FILE" ]; then
+if [ -f "$JSON_REPORT" ]; then
   echo ""
   echo "📊 Generating HTML report..."
-  node load-tests/generate-html-report.js "$REPORT_FILE" "$HTML_REPORT" 2>/dev/null || true
+  node load-tests/generate-html-report.js "$JSON_REPORT" "$HTML_REPORT" 2>/dev/null || true
   echo "✅ Report saved to: $HTML_REPORT"
 fi

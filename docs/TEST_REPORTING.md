@@ -2,13 +2,38 @@
 
 This document describes how test reports are generated, stored, and consumed by GitHub Actions for insights and analysis.
 
+All test results are consolidated in `test-results/` organized by tool for consistency and easier navigation.
+
+## Report Structure
+
+```
+test-results/
+├── playwright/               (Playwright functional tests)
+│   ├── index.html           (HTML report - browser-viewable)
+│   ├── results.json         (Complete test execution data)
+│   ├── junit.xml            (GitHub Test Results integration)
+│   └── ... (internal Playwright report files)
+│
+├── newman/                  (Newman/Postman collection tests)
+│   ├── results.json         (Local execution results)
+│   └── results.xml          (CI execution for GitHub integration)
+│
+└── artillery/               (Artillery load tests)
+    ├── quick_TIMESTAMP.json    (Quick smoke test data)
+    ├── quick_TIMESTAMP.html    (Quick test report)
+    ├── standard_TIMESTAMP.json (Full load test data)
+    ├── standard_TIMESTAMP.html (Full test report)
+    ├── incremental_*.json      (Rate-limit discovery)
+    └── incremental_*.html      (Rate-limit report)
+```
+
 ## Report Types Generated
 
 ### 1. **Playwright Test Reports**
 
 **HTML Report:**
 - **Format:** Interactive HTML dashboard
-- **Location:** `playwright-report/` (artifact)
+- **Location:** `test-results/playwright/index.html`
 - **Contains:** 
   - Test execution timeline
   - Pass/fail breakdown by test suite
@@ -18,26 +43,39 @@ This document describes how test reports are generated, stored, and consumed by 
 
 **JUnit XML Report:**
 - **Format:** Machine-readable XML (industry standard)
-- **Location:** `test-results/junit.xml` (artifact)
+- **Location:** `test-results/playwright/junit.xml`
 - **Used by:** GitHub's test reporter
 - **Contains:** Test names, durations, failures, errors
 
 **JSON Report:**
 - **Format:** Structured JSON
-- **Location:** `test-results/results.json` (artifact)
+- **Location:** `test-results/playwright/results.json`
 - **Contains:** Complete test execution data for programmatic analysis
 
 ### 2. **Newman/Postman Test Reports**
 
+**JSON Report (Local):**
+- **Format:** Newman JSON output
+- **Location:** `test-results/newman/results.json`
+- **Contains:** Collection execution results, request times, assertions
+
+**XML Report (CI):**
+- **Format:** JUnit-compatible XML
+- **Location:** `test-results/newman/results.xml` (CI only)
+- **Used by:** GitHub's test reporter
+- **Contains:** Test names, assertions, errors
+
+### 3. **Artillery Load Test Reports**
+
 **JSON Report:**
-- **Format:** Artillery JSON output
-- **Location:** `load-tests/results/report_*.json` (artifact)
-- **Contains:** Performance metrics, response times, status codes
+- **Format:** Artillery native JSON
+- **Location:** `test-results/artillery/{quick|standard|incremental}_TIMESTAMP.json`
+- **Contains:** Performance metrics, response times, status codes, latency percentiles
 
 **HTML Report:**
 - **Format:** Interactive dashboard
-- **Location:** `load-tests/results/report_*.html` (artifact)
-- **Contains:** Charts, latency percentiles, throughput analysis
+- **Location:** `test-results/artillery/{quick|standard|incremental}_TIMESTAMP.html`
+- **Contains:** Charts, latency distributions, throughput analysis, rate-limit detection
 
 ## GitHub Integration
 
@@ -57,16 +95,20 @@ GitHub's native **Test Results** tab displays:
 
 ### Artifacts Tab
 
-All reports are retained as downloadable artifacts:
+All reports are retained as downloadable artifacts in the `test-results` artifact bundle:
 
-**Playwright Artifacts (`playwright-artifacts`):**
-- `playwright-report/` — Full interactive HTML report
-- `test-results/junit.xml` — Machine-readable results
-- `test-results/results.json` — Complete execution data
+**Playwright Reports (`test-results/playwright/`):**
+- `index.html` — Full interactive HTML report
+- `junit.xml` — Machine-readable results for GitHub Test Results tab
+- `results.json` — Complete execution data for CI/CD analysis
 
-**Newman Artifacts (`newman-artifacts`):**
-- `load-tests/results/report_*.json` — Load test metrics
-- `load-tests/results/report_*.html` — Visual dashboard
+**Newman Reports (`test-results/newman/`):**
+- `results.json` — Local execution results
+- `results.xml` — CI execution results for GitHub integration
+
+**Artillery Load Test Reports (`test-results/artillery/`):**
+- `{quick|standard|incremental}_TIMESTAMP.json` — Test metrics and performance data
+- `{quick|standard|incremental}_TIMESTAMP.html` — Visual dashboard with charts
 
 **Retention:** 30 days
 

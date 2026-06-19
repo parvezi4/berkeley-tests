@@ -24,9 +24,9 @@ export default defineConfig({
   workers: process.env.WORKERS ? (process.env.WORKERS === 'auto' ? undefined : parseInt(process.env.WORKERS)) : 1,
   reporter: [
     ['list'],
-    ['html', { open: 'never', outputFolder: 'playwright-report' }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['junit', { outputFile: 'test-results/junit.xml' }],
+    ['html', { open: 'never', outputFolder: 'test-results/playwright' }],
+    ['json', { outputFile: 'test-results/playwright/results.json' }],
+    ['junit', { outputFile: 'test-results/playwright/junit.xml' }],
   ],
   // Shared settings for all the requests we send.
   use: {

@@ -6,19 +6,26 @@ node_modules/
 .env.local
 *.local
 
-# Playwright output
-playwright-report/
-test-results/
-blob-report/
-playwright/.cache/
+# Test results (consolidated in test-results/)
+# Keep directory structure with .gitkeep, ignore artifacts
+/test-results/playwright/**/*.json
+/test-results/playwright/**/*.html
+/test-results/playwright/**/index.html
+/test-results/playwright/**/junit.xml
+/test-results/newman/**/*.json
+/test-results/newman/**/*.xml
+/test-results/artillery/**/*.json
+/test-results/artillery/**/*.html
 
-# Artillery load test results (keep directory with .gitkeep)
+# Old locations (for backwards compatibility during transition)
+playwright-report/
 /load-tests/results/**/*.json
 /load-tests/results/**/*.html
-
-# Newman test results (keep directory with .gitkeep)
 /newman-results/**/*.json
 /newman-results/**/*.xml
+
+blob-report/
+playwright/.cache/
 
 # Logs
 *.log

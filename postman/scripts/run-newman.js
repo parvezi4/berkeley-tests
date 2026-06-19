@@ -60,7 +60,7 @@ if (process.env.PROGRAM_ID) {
 }
 
 // Create results directory if it doesn't exist
-const resultsDir = 'newman-results';
+const resultsDir = 'test-results/newman';
 if (!fs.existsSync(resultsDir)) {
   fs.mkdirSync(resultsDir, { recursive: true });
 }
@@ -70,15 +70,15 @@ if (isCI) {
   // Generate both JSON and JUnit XML for reporting
   baseCommand.push(
     '--reporters', 'cli,json,junit',
-    '--reporter-json-export', `${resultsDir}/newman-results.json`,
-    '--reporter-junit-export', `${resultsDir}/newman-results.xml`
+    '--reporter-json-export', `${resultsDir}/results.json`,
+    '--reporter-junit-export', `${resultsDir}/results.xml`
   );
   console.log('Running in CI mode with JSON and JUnit reporters');
 } else {
   // Local development: just JSON
   baseCommand.push(
     '--reporters', 'cli,json',
-    '--reporter-json-export', `${resultsDir}/newman-results.json`
+    '--reporter-json-export', `${resultsDir}/results.json`
   );
 }
 

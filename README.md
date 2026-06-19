@@ -158,6 +158,33 @@ See [`docs/LOAD_TESTING.md`](docs/LOAD_TESTING.md) for the complete guide:
 - Metrics interpretation and performance baselines
 - Troubleshooting and best practices
 
+## Test Results
+
+All test reports are consolidated in `test-results/` organized by testing tool:
+
+```
+test-results/
+├── playwright/           Playwright functional test results
+│   ├── index.html       (HTML report - browser-viewable)
+│   ├── junit.xml        (GitHub Test Results integration)
+│   └── results.json     (Complete execution data)
+├── newman/              Newman/Postman collection test results
+│   ├── results.json     (Local execution)
+│   └── results.xml      (CI integration)
+└── artillery/           Artillery load test results
+    ├── quick_TIMESTAMP.json/.html
+    ├── standard_TIMESTAMP.json/.html
+    └── incremental_TIMESTAMP.json/.html
+```
+
+**Important:** Test result files are gitignored to avoid committing large artifacts. The `.gitkeep` files preserve directory structure after cloning.
+
+See [`docs/TEST_REPORTING.md`](docs/TEST_REPORTING.md) for detailed information on:
+- Report types and formats
+- How to consume reports locally or programmatically
+- GitHub Actions integration
+- CI/CD artifact retention
+
 ## Documentation
 
 ### Getting Started
